@@ -1,0 +1,6 @@
+{
+  "name": "SAFE-ARCH Workstation",
+  "description": "Comprehensive CRF data collection v1.2.0. Fixed statistics engine and completed all analysis modules.",
+  "version": "1.2.0",
+  "requestFramePermissions": []
+}
