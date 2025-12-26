@@ -1,10 +1,10 @@
 
-import { GoogleGenAI } from "@google/genai";
+import Anthropic from "@anthropic-ai/sdk";
 import { AnalysisReport } from './statisticsEngine';
 
-// Initialization of GoogleGenAI as per guidelines
+// Initialization of Anthropic Claude client
 const getAi = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 };
 
 export const generateInterpretation = async (report: AnalysisReport): Promise<string> => {
@@ -21,9 +21,12 @@ export const generateInterpretation = async (report: AnalysisReport): Promise<st
     - Compare Stroke Rate to ESO Benchmark (7-13%).
     - Brief, professional medical style.
   `;
-  // Using gemini-3-flash-preview as per the guidelines for basic tasks
-  const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
-  return response.text || "No output.";
+  const response = await ai.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.content[0].type === 'text' ? response.content[0].text : "No output.";
 };
 
 export const generateNeuroInterpretation = async (report: AnalysisReport): Promise<string> => {
@@ -40,8 +43,12 @@ export const generateNeuroInterpretation = async (report: AnalysisReport): Promi
     - Comment on Anatomical Risks (Circle of Willis).
     - Provide a clinical recommendation.
   `;
-  const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
-  return response.text || "No output.";
+  const response = await ai.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.content[0].type === 'text' ? response.content[0].text : "No output.";
 };
 
 export const generatePredictorInterpretation = async (report: AnalysisReport): Promise<string> => {
@@ -57,8 +64,12 @@ export const generatePredictorInterpretation = async (report: AnalysisReport): P
     - Discuss Odds Ratios (OR).
     - Highlight 'Shaggy Aorta' and 'Urgency' impact.
   `;
-  const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
-  return response.text || "No output.";
+  const response = await ai.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.content[0].type === 'text' ? response.content[0].text : "No output.";
 };
 
 export const generateSafetyInterpretation = async (report: AnalysisReport): Promise<string> => {
@@ -75,8 +86,12 @@ export const generateSafetyInterpretation = async (report: AnalysisReport): Prom
     - Comment on the 'Safety Matrix' (Device vs Complication).
     - Is the safety profile acceptable?
   `;
-  const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
-  return response.text || "No output.";
+  const response = await ai.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.content[0].type === 'text' ? response.content[0].text : "No output.";
 };
 
 export const generateSurvivalInterpretation = async (report: AnalysisReport): Promise<string> => {
@@ -93,8 +108,12 @@ export const generateSurvivalInterpretation = async (report: AnalysisReport): Pr
     - Compare Urgent vs Elective.
     - Is there significant early attrition?
   `;
-  const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
-  return response.text || "No output.";
+  const response = await ai.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.content[0].type === 'text' ? response.content[0].text : "No output.";
 };
 
 export const generateSubgroupInterpretation = async (report: AnalysisReport): Promise<string> => {
@@ -110,8 +129,12 @@ export const generateSubgroupInterpretation = async (report: AnalysisReport): Pr
     - Compare Device Configurations (Branched vs Fenestrated vs Chimney).
     - Identify the highest risk subgroup.
   `;
-  const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
-  return response.text || "No output.";
+  const response = await ai.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.content[0].type === 'text' ? response.content[0].text : "No output.";
 };
 
 export const generateMasterSummary = async (report: AnalysisReport, analyses: Record<string, string>): Promise<string> => {
@@ -135,6 +158,10 @@ export const generateMasterSummary = async (report: AnalysisReport, analyses: Re
 
     Format as a formal Medical Journal Abstract (Results & Conclusion).
   `;
-  const response = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
-  return response.text || "No output.";
+  const response = await ai.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 2048,
+    messages: [{ role: 'user', content: prompt }]
+  });
+  return response.content[0].type === 'text' ? response.content[0].text : "No output.";
 };

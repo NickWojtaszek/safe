@@ -207,7 +207,7 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
             Clinical Analytics v1.2.0
           </h2>
           <p className="text-slate-500 text-[10px] mt-1 font-mono uppercase tracking-widest">
-            Dataset: N={report?.totalRecords || 0} • {new Date(report?.timestamp || Date.now()).toLocaleString()}
+            Dataset: N={report?.totalRecords || 0} • Generated: {new Date(report?.timestamp || Date.now()).toLocaleString()}
           </p>
         </div>
       </div>
@@ -381,17 +381,26 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
 
         {activeTab === 'neuro' && (
            <div className="space-y-8 animate-fade-in">
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <div className="grid grid-cols-2 gap-6">
                 <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
-                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Neuro Burden Matrix</h3>
                    <div className="flex justify-center"><BurdenMatrix data={report?.neuro?.burdenMatrix || []} /></div>
                 </div>
                 <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
-                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Composite Ranking</h3>
-                   <BurdenRanking data={report?.neuro?.burdenMatrix || []} />
+                   <BurdenRanking data={report?.neuro?.burdenMatrix || []} dataAll={report?.neuro?.burdenMatrixAll || []} />
                 </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 1. Neuro Burden Matrix</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed"><strong>Formula:</strong> X-axis shows 30-day stroke event rate (%) within each subgroup. Y-axis shows mean NIHSS at diagnosis for stroke-affected patients only. Bubble size represents total cohort size (n) in each subgroup. Colors denote category: Anatomy (amber), Device (cyan), Patient (purple). <strong>Note:</strong> Analysis limited to stroke cohort in neuro tab. <strong>Interpretation:</strong> Upper-right quadrant indicates groups with high stroke frequency and severe neurological outcomes.</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 2. Composite Ranking</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed"><strong>Visualization:</strong> Stacked bar chart showing patient composition per subgroup. <strong>Light bar:</strong> Total cohort size for that subgroup. <strong>Dark bar overlay:</strong> 30-day stroke event rate (%) within that subgroup. <strong>Labels:</strong> Display absolute patient count (n) and stroke percentage. <strong>Interpretation:</strong> Shows both the size of each population and their stroke risk - larger groups with high stroke rates represent highest overall burden.</p>
+                </div>
+             </div>
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
-                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">EPD vs No EPD NIHSS</h3>
                    <NihssJitterChart 
                      groupA={report.neuro.nihssBreakdown.epdYes} 
                      groupB={report.neuro.nihssBreakdown.epdNo}
@@ -402,8 +411,17 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
                    />
                 </div>
                 <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
-                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">EPD/CoW Interaction</h3>
                    <InteractionChart stats={report.neuro.interactionStats} />
+                </div>
+             </div>
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 3. EPD vs No EPD NIHSS</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Analyzes NIHSS severity distribution among stroke patients, stratified by Endovascular Procedures (EPD) status. Each dot represents a stroke patient's NIHSS score at diagnosis, with the mean value highlighted for each group. Shows how EPD treatment relates to neurological outcome severity in stroke cases.</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 4. EPD/CoW Interaction</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Analyzes the interactive effects between Endovascular Procedures and Circle of Willis (CoW) completeness on patient outcomes. The bubble size represents patient volume, showing how different combinations of EPD status and CoW configuration impact NIHSS scores.</p>
                 </div>
              </div>
              <AiSection agentKey="neuro" title="Neuro" generator={generateNeuroInterpretation} icon={Brain} />

@@ -133,6 +133,7 @@ export interface AnalysisReport {
       cowIncomplete: StrokeTypeCounts;
     };
     burdenMatrix: StrokeBurdenPoint[];
+    burdenMatrixAll: StrokeBurdenPoint[];
   };
   riskModel: { factors: Record<string, { multiplier: number }> };
   plots: { contrastVsCreatinine: ScatterPoint[] };
@@ -228,6 +229,14 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
     const rate = safeDiv(st.length, subset.length) * 100;
     const nihss = st.length ? st.map(r => Number(r?.data?.nihss_at_diagnosis)).reduce((a,b)=>a+b,0)/st.length : 0;
     return { groupLabel: label, strokeRate: rate, meanNihss: nihss, compositeScore: (rate * nihss) / 10, n: subset.length, category };
+  };
+
+  const getBurdenPointAll = (filter: (r: CollectionRecord) => boolean, label: string, category: any): StrokeBurdenPoint => {
+    const subset = records?.filter(filter) || [];
+    const st = subset.filter(r => r?.data?.any_stroke_30d === 'tak');
+    const rate = safeDiv(st.length, subset.length) * 100;
+    const nihss = st.length ? st.map(r => Number(r?.data?.nihss_at_diagnosis)).reduce((a,b)=>a+b,0)/st.length : 0;
+    return { groupLabel: label, strokeRate: rate, meanNihss: nihss, compositeScore: rate, n: subset.length, category };
   };
 
   const getTimeStat = (subset: CollectionRecord[]) => {
@@ -330,6 +339,13 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
         getBurdenPoint(r => r?.data?.willis_classification !== 'full', 'Inc. CoW', 'Anatomy'),
         getBurdenPoint(r => r?.data?.epd_used_proc !== 'tak', 'No EPD', 'Device'),
         getBurdenPoint(r => true, 'Overall Cohort', 'Other')
+      ],
+      burdenMatrixAll: [
+        getBurdenPointAll(r => r?.data?.shaggy_aorta === 'tak', 'Shaggy Aorta', 'Anatomy'),
+        getBurdenPointAll(r => r?.data?.urgency_proc !== 'elective', 'Urgent Mode', 'Patient'),
+        getBurdenPointAll(r => r?.data?.willis_classification !== 'full', 'Inc. CoW', 'Anatomy'),
+        getBurdenPointAll(r => r?.data?.epd_used_proc !== 'tak', 'No EPD', 'Device'),
+        getBurdenPointAll(r => true, 'Overall Cohort', 'Other')
       ]
     },
     riskModel: { factors: { shaggy: { multiplier: 3.5 }, urgency: { multiplier: 2.1 }, noEpd: { multiplier: 2.5 }, incompleteCow: { multiplier: 2.2 } } },
