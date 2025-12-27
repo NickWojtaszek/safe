@@ -407,3 +407,238 @@ export const RiskRateChart: React.FC<{ data: PredictorResult[] }> = ({ data }) =
       </svg>
   );
 };
+
+export const SexByIndicationChart: React.FC<{ sexByIndication: Record<string, { Males: number; Females: number }>; total: number }> = ({ sexByIndication, total }) => {
+  const width = 700;
+  const height = 380;
+  const margin = { top: 40, right: 60, bottom: 100, left: 50 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+
+  const indications = Object.keys(sexByIndication) as Array<keyof typeof sexByIndication>;
+  const maxCount = Math.max(...indications.flatMap(ind => [sexByIndication[ind].Males, sexByIndication[ind].Females]), 1) * 1.1;
+  
+  const barGroupWidth = chartWidth / indications.length;
+  const barWidth = 35;
+  const yScale = (val: number) => chartHeight - (val / maxCount) * chartHeight;
+
+  const colors = {
+    Aneurysm: { bg: '#f59e0b', maleBar: '#3b82f6', femaleBar: '#ec4899' },
+    Dissection: { bg: '#06b6d4', maleBar: '#3b82f6', femaleBar: '#ec4899' },
+    Other: { bg: '#8b5cf6', maleBar: '#3b82f6', femaleBar: '#ec4899' }
+  };
+
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#334155" />
+      <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#334155" />
+      
+      {indications.map((indication, idx) => {
+        const groupX = margin.left + idx * barGroupWidth + barGroupWidth / 2;
+        const maleCount = sexByIndication[indication].Males;
+        const femaleCount = sexByIndication[indication].Females;
+        const maleX = groupX - barWidth - 8;
+        const femaleX = groupX + 8;
+        const maleY = margin.top + yScale(maleCount);
+        const femaleY = margin.top + yScale(femaleCount);
+        const maleHeight = chartHeight - yScale(maleCount);
+        const femaleHeight = chartHeight - yScale(femaleCount);
+
+        return (
+          <g key={indication}>
+            {/* Indication label background */}
+            <rect x={groupX - barGroupWidth/2} y={margin.top - 25} width={barGroupWidth} height={20} fill={colors[indication].bg} opacity="0.15" rx="2" />
+            
+            {/* Male bar */}
+            <rect x={maleX} y={maleY} width={barWidth} height={maleHeight} fill={colors[indication].maleBar} opacity="0.8" rx="2" />
+            <text x={maleX + barWidth/2} y={maleY - 5} textAnchor="middle" className="text-xs fill-slate-300 font-bold">{maleCount}</text>
+            
+            {/* Female bar */}
+            <rect x={femaleX} y={femaleY} width={barWidth} height={femaleHeight} fill={colors[indication].femaleBar} opacity="0.8" rx="2" />
+            <text x={femaleX + barWidth/2} y={femaleY - 5} textAnchor="middle" className="text-xs fill-slate-300 font-bold">{femaleCount}</text>
+            
+            {/* Indication label */}
+            <text x={groupX} y={height - margin.bottom + 20} textAnchor="middle" className="text-xs fill-slate-300 font-bold">{indication}</text>
+          </g>
+        );
+      })}
+
+      {/* Legend - Single row at bottom */}
+      <g>
+        <text x={55} y={height - 20} className="text-[8px] fill-slate-500 uppercase font-bold">Sex:</text>
+        <rect x={105} y={height - 27} width={12} height={12} fill="#3b82f6" opacity="0.8" />
+        <text x={122} y={height - 15} className="text-[8px] fill-slate-300">Males</text>
+        
+        <rect x={195} y={height - 27} width={12} height={12} fill="#ec4899" opacity="0.8" />
+        <text x={212} y={height - 15} className="text-[8px] fill-slate-300">Females</text>
+      </g>
+
+      {/* Y-axis labels */}
+      <text x={margin.left - 10} y={height - margin.bottom} textAnchor="end" className="text-[10px] fill-slate-500">0</text>
+      <text x={margin.left - 10} y={margin.top + yScale(maxCount/2)} textAnchor="end" className="text-[10px] fill-slate-500">{(maxCount/2).toFixed(0)}</text>
+      <text x={margin.left - 10} y={margin.top} textAnchor="end" className="text-[10px] fill-slate-500">{maxCount.toFixed(0)}</text>
+    </svg>
+  );
+};
+
+export const IndicationSexAgeChart: React.FC<{ data: Array<{ indication: string; sex: 'M' | 'F'; meanAge: number; count: number }> }> = ({ data }) => {
+  const width = 700;
+  const height = 380;
+  const margin = { top: 40, right: 60, bottom: 140, left: 60 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+
+  // Filter data with count > 0
+  const filteredData = data.filter(d => d.count > 0);
+  
+  const minAge = Math.min(...filteredData.map(d => d.meanAge), 30);
+  const maxAge = Math.max(...filteredData.map(d => d.meanAge), 80);
+  const minCount = 0;
+  const maxCount = Math.max(...filteredData.map(d => d.count), 10) * 1.2;
+
+  const xScale = (age: number) => margin.left + ((age - minAge) / (maxAge - minAge)) * chartWidth;
+  const yScale = (count: number) => margin.top + chartHeight - (count / maxCount) * chartHeight;
+
+  const indicationColors: Record<string, string> = {
+    Aneurysm: '#f59e0b',
+    Dissection: '#06b6d4',
+    Other: '#8b5cf6'
+  };
+
+  const sexColors = { M: '#3b82f6', F: '#ec4899' };
+
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      {/* Grid lines */}
+      <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#334155" strokeWidth="2" />
+      <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#334155" strokeWidth="2" />
+
+      {/* Axis labels */}
+      <text x={margin.left + chartWidth/2} y={height - 105} textAnchor="middle" className="text-xs fill-slate-400 font-bold">Mean Age (years)</text>
+      <text x={25} y={margin.top + chartHeight/2} textAnchor="middle" className="text-xs fill-slate-400 font-bold" transform={`rotate(-90, 25, ${margin.top + chartHeight/2})`}>Patient Count</text>
+
+      {/* Scatter points */}
+      {filteredData.map((point, idx) => {
+        const cx = xScale(point.meanAge);
+        const cy = yScale(point.count);
+        const r = 6;
+        const borderColor = indicationColors[point.indication] || '#64748b';
+        const fillColor = sexColors[point.sex] || '#94a3b8';
+
+        return (
+          <g key={idx}>
+            {/* Outer ring (indication) */}
+            <circle cx={cx} cy={cy} r={r + 2} fill="none" stroke={borderColor} strokeWidth="2" opacity="0.6" />
+            {/* Inner circle (sex) */}
+            <circle cx={cx} cy={cy} r={r} fill={fillColor} opacity="0.8" />
+            {/* Label */}
+            <text x={cx} y={cy - 12} textAnchor="middle" className="text-[9px] fill-slate-300 font-bold">{point.meanAge.toFixed(1)}y</text>
+            <text x={cx} y={cy + 18} textAnchor="middle" className="text-[8px] fill-slate-400 font-mono">n={point.count}</text>
+          </g>
+        );
+      })}
+
+      {/* X-axis labels */}
+      <text x={xScale(minAge)} y={height - margin.bottom + 20} textAnchor="middle" className="text-[10px] fill-slate-500">{minAge.toFixed(0)}</text>
+      <text x={xScale((minAge + maxAge) / 2)} y={height - margin.bottom + 20} textAnchor="middle" className="text-[10px] fill-slate-500">{((minAge + maxAge) / 2).toFixed(0)}</text>
+      <text x={xScale(maxAge)} y={height - margin.bottom + 20} textAnchor="middle" className="text-[10px] fill-slate-500">{maxAge.toFixed(0)}</text>
+
+      {/* Y-axis labels */}
+      <text x={margin.left - 10} y={height - margin.bottom + 4} textAnchor="end" className="text-[10px] fill-slate-500">0</text>
+      <text x={margin.left - 10} y={margin.top + chartHeight/2 + 4} textAnchor="end" className="text-[10px] fill-slate-500">{(maxCount/2).toFixed(0)}</text>
+      <text x={margin.left - 10} y={margin.top + 4} textAnchor="end" className="text-[10px] fill-slate-500">{maxCount.toFixed(0)}</text>
+
+      {/* Legend - Single row at bottom */}
+      <g>
+        <text x={55} y={height - 25} className="text-[8px] fill-slate-500 uppercase font-bold">Indication (Ring):</text>
+        <circle cx={175} cy={height - 31} r="4" fill="none" stroke="#f59e0b" strokeWidth="2" opacity="0.6" />
+        <text x={185} y={height - 27} className="text-[8px] fill-slate-300">Aneurysm</text>
+        
+        <circle cx={280} cy={height - 31} r="4" fill="none" stroke="#06b6d4" strokeWidth="2" opacity="0.6" />
+        <text x={290} y={height - 27} className="text-[8px] fill-slate-300">Dissection</text>
+        
+        <circle cx={375} cy={height - 31} r="4" fill="none" stroke="#8b5cf6" strokeWidth="2" opacity="0.6" />
+        <text x={385} y={height - 27} className="text-[8px] fill-slate-300">Other</text>
+        
+        <text x={445} y={height - 25} className="text-[8px] fill-slate-500 uppercase font-bold">Sex (Fill):</text>
+        <circle cx={555} cy={height - 31} r="4" fill="#3b82f6" opacity="0.8" />
+        <text x={565} y={height - 27} className="text-[8px] fill-slate-300">Male</text>
+        
+        <circle cx={625} cy={height - 31} r="4" fill="#ec4899" opacity="0.8" />
+        <text x={635} y={height - 27} className="text-[8px] fill-slate-300">Female</text>
+      </g>
+    </svg>
+  );
+};
+
+export const ComorbidityBarChart: React.FC<{ comorbidities: Record<string, number>; total: number }> = ({ comorbidities, total }) => {
+  const comorbidityLabels: Record<string, { label: string; color: string }> = {
+    htn: { label: 'Hypertension', color: '#ef4444' },
+    cad: { label: 'Coronary Artery Disease', color: '#f97316' },
+    mi_history: { label: 'Prior MI', color: '#fb923c' },
+    heart_failure_nyha: { label: 'Heart Failure', color: '#fbbf24' },
+    afib: { label: 'Atrial Fibrillation', color: '#a855f7' },
+    prev_cardio_sx: { label: 'Prior Cardio Sx', color: '#d946ef' },
+    pfo_history: { label: 'PFO', color: '#ec4899' },
+    other_shunt: { label: 'Other Shunt', color: '#f43f5e' },
+    pad: { label: 'PAD', color: '#ca8a04' },
+    stroke_isch: { label: 'Prior Ischemic Stroke', color: '#06b6d4' },
+    stroke_hem: { label: 'Prior Hemorrhagic Stroke', color: '#0891b2' },
+    stroke_tia: { label: 'Prior TIA', color: '#06b6d4' },
+    carotid_stenosis_gt50: { label: 'Carotid Stenosis', color: '#14b8a6' },
+    cea_stent_history: { label: 'CEA/Stent History', color: '#0d9488' },
+    cognitive_impairment: { label: 'Cognitive Impairment', color: '#059669' },
+    dm: { label: 'Diabetes Mellitus', color: '#eab308' },
+    copd: { label: 'COPD', color: '#84cc16' },
+    chronic_kidney: { label: 'Chronic Kidney Disease', color: '#22c55e' },
+    dialysis: { label: 'Dialysis', color: '#16a34a' },
+    connective_tissue_disease: { label: 'Connective Tissue Disease', color: '#3b82f6' },
+    active_cancer: { label: 'Active Cancer', color: '#1e40af' }
+  };
+
+  // Get all available comorbidities with counts
+  const allItems = Object.entries(comorbidities).map(([key, count]) => ({
+    key,
+    label: comorbidityLabels[key]?.label || key,
+    count,
+    percentage: total > 0 ? ((count / total) * 100) : 0,
+    color: comorbidityLabels[key]?.color || '#64748b'
+  }));
+
+  // Filter to items with data and sort by prevalence
+  const items = allItems
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  if (items.length === 0) {
+    return <div className="text-slate-500 text-xs text-center py-8">No comorbidities recorded</div>;
+  }
+
+  const maxCount = Math.max(...items.map(i => i.count), 1);
+  const width = 900;
+  const height = Math.max(items.length * 26 + 60, 200);
+  const margin = { top: 30, right: 100, bottom: 20, left: 180 };
+  const chartWidth = width - margin.left - margin.right;
+  const barHeight = 20;
+  const xScale = (val: number) => (val / maxCount) * chartWidth;
+
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#334155" />
+      <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#334155" />
+      <text x={margin.left + chartWidth/2} y={height - 2} textAnchor="middle" className="text-xs fill-slate-400 font-bold">Patient Count</text>
+      {items.map((item, i) => {
+        const y = margin.top + i * 26 + 13;
+        const barWidth = xScale(item.count);
+        return (
+          <g key={item.key}>
+            <text x={margin.left - 10} y={y + 4} textAnchor="end" className="text-xs fill-slate-300 font-medium">{item.label}</text>
+            <rect x={margin.left} y={y - barHeight/2} width={barWidth} height={barHeight} fill={item.color} opacity="0.8" rx="3" />
+            <text x={margin.left + barWidth + 8} y={y + 5} className="text-sm fill-slate-300 font-mono font-bold">{item.count}</text>
+            <text x={margin.left + barWidth + 55} y={y + 5} className="text-xs fill-slate-500 font-mono">({item.percentage.toFixed(1)}%)</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};

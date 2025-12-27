@@ -15,7 +15,7 @@ import {
   MultiLineKmChart, TimeByDeviceChart, ComplicationMatrix, 
   TimeVsBleedingChart, ScatterPlot, DonutChart, 
   BurdenMatrix, BurdenRanking, NihssJitterChart, 
-  InteractionChart, PhenotypeChart, ForestPlot, RiskRateChart 
+  InteractionChart, PhenotypeChart, ForestPlot, RiskRateChart, ComorbidityBarChart, SexByIndicationChart, IndicationSexAgeChart 
 } from './AnalysisCharts';
 import { 
   BarChart2, Calculator, Activity, 
@@ -499,21 +499,76 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
         )}
 
         {activeTab === 'desc' && (
-           <div className="animate-fade-in grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-slate-950 p-8 rounded border border-slate-800 flex flex-col items-center">
-                 <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Sex Distribution</h3>
-                 <DonutChart data={[
-                   {label: 'Male', count: report.demographics.sex.counts.Males, color: '#3b82f6'},
-                   {label: 'Female', count: report.demographics.sex.counts.Females, color: '#ec4899'}
-                 ]} />
-              </div>
-              <div className="bg-slate-950 p-8 rounded border border-slate-800 flex flex-col items-center">
-                 <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Hypertension Prevalence</h3>
-                 <DonutChart data={[
-                   {label: 'HTN (+)', count: Math.round(report.demographics.htn.proportions.HTN * report.totalRecords), color: '#ef4444'},
-                   {label: 'HTN (-)', count: report.totalRecords - Math.round(report.demographics.htn.proportions.HTN * report.totalRecords), color: '#334155'}
-                 ]} />
-              </div>
+           <div className="space-y-8 animate-fade-in">
+             {/* Demographics Row */}
+             <div>
+                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-[11px] mb-4 flex items-center"><Users className="w-4 h-4 mr-2" /> Demographics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                   <div className="bg-slate-950 p-6 rounded border border-slate-800">
+                      <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-4">Mean Age by Sex</h4>
+                      <div className="flex justify-around text-center">
+                        <div>
+                          <div className="text-3xl font-black text-blue-400 mb-1">{report.demographics.ageBySex.Males.mean.toFixed(1)}</div>
+                          <div className="text-[9px] text-slate-500 font-mono mb-2">Males (n={report.demographics.ageBySex.Males.n})</div>
+                          <div className="text-[8px] text-slate-600">SD: ±{report.demographics.ageBySex.Males.sd.toFixed(1)}</div>
+                        </div>
+                        <div className="border-l border-slate-800"></div>
+                        <div>
+                          <div className="text-3xl font-black text-pink-400 mb-1">{report.demographics.ageBySex.Females.mean.toFixed(1)}</div>
+                          <div className="text-[9px] text-slate-500 font-mono mb-2">Females (n={report.demographics.ageBySex.Females.n})</div>
+                          <div className="text-[8px] text-slate-600">SD: ±{report.demographics.ageBySex.Females.sd.toFixed(1)}</div>
+                        </div>
+                      </div>
+                   </div>
+                   <div className="bg-slate-950 p-6 rounded border border-slate-800">
+                      <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-4">Population Summary</h4>
+                      <div className="flex justify-around text-center">
+                        <div>
+                          <div className="text-3xl font-black text-slate-300 mb-1">{report.demographics.sex.n}</div>
+                          <div className="text-[9px] text-slate-500 font-mono">Total Patients</div>
+                        </div>
+                        <div className="border-l border-slate-800"></div>
+                        <div>
+                          <div className="text-3xl font-black text-cyan-400 mb-1">{report.demographics.age.mean.toFixed(1)}</div>
+                          <div className="text-[9px] text-slate-500 font-mono">Overall Mean Age</div>
+                          <div className="text-[8px] text-slate-600 mt-1">SD: ±{report.demographics.age.sd.toFixed(1)}</div>
+                        </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Sex by Indication Chart */}
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-6">
+                   <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-4">Sex Distribution by Primary Indication</h4>
+                   <SexByIndicationChart sexByIndication={report.demographics.sexByIndication} total={report.demographics.sex.n} />
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-800 mb-8">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 1. Sex Distribution by Primary Indication</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Grouped bar chart showing the distribution of male and female patients across each primary indication (Aneurysm, Dissection, Other). Blue bars represent males, pink bars represent females. Labels on each bar display absolute patient counts. This visualization helps identify gender-based differences in diagnosis prevalence across the three indication categories.</p>
+                </div>
+
+                {/* Indication × Sex × Age Chart */}
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-6">
+                   <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-4">Mean Age by Indication & Sex (with Sample Sizes)</h4>
+                   <IndicationSexAgeChart data={report.demographics.indicationBySexAge} />
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-800 mb-8">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 2. Mean Age by Indication & Sex (with Sample Sizes)</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Scatter plot displaying the relationship between mean age (X-axis) and patient count (Y-axis) for each indication-sex combination. The outer ring color represents indication type (Aneurysm=amber, Dissection=cyan, Other=purple), while the inner circle fill denotes sex (blue=male, pink=female). Each point is labeled with mean age and sample size (n), enabling simultaneous analysis of age distribution, gender patterns, and cohort sizes across all subgroups.</p>
+                </div>
+             </div>
+
+             {/* Comorbidities Row */}
+             <div>
+                <h3 className="text-slate-400 font-bold uppercase tracking-widest text-[11px] mb-4 flex items-center"><Activity className="w-4 h-4 mr-2" /> Comorbidities</h3>
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-6">
+                   <ComorbidityBarChart comorbidities={report.demographics.comorbidities} total={report.demographics.sex.n} />
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 3. Comorbidities Prevalence</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Horizontal bar chart displaying the prevalence of 21 comorbidities across the patient cohort. Bars are color-coded by condition type and sorted by frequency (highest to lowest). Each bar shows the absolute patient count and percentage of total cohort affected. This visualization enables rapid identification of the most common comorbid conditions and helps assess overall disease burden and risk profile of the study population.</p>
+                </div>
+             </div>
            </div>
         )}
 

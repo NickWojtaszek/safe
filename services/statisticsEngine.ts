@@ -75,8 +75,46 @@ export interface AnalysisReport {
   totalRecords: number;
   demographics: {
     age: { n: number; mean: number; sd: number };
+    ageBySex: {
+      Males: { mean: number; sd: number; n: number };
+      Females: { mean: number; sd: number; n: number };
+    };
     sex: { n: number; counts: { Males: number; Females: number } };
-    htn: { n: number; proportions: { HTN: number } };
+    indication: { n: number; counts: { Aneurysm: number; Dissection: number; Other: number } };
+    sexByIndication: {
+      Aneurysm: { Males: number; Females: number };
+      Dissection: { Males: number; Females: number };
+      Other: { Males: number; Females: number };
+    };
+    indicationBySexAge: Array<{
+      indication: string;
+      sex: 'M' | 'F';
+      meanAge: number;
+      count: number;
+    }>;
+    comorbidities: {
+      htn: number;
+      cad: number;
+      mi_history: number;
+      heart_failure_nyha: number;
+      afib: number;
+      prev_cardio_sx: number;
+      pfo_history: number;
+      other_shunt: number;
+      pad: number;
+      stroke_isch: number;
+      stroke_hem: number;
+      stroke_tia: number;
+      carotid_stenosis_gt50: number;
+      cea_stent_history: number;
+      cognitive_impairment: number;
+      dm: number;
+      copd: number;
+      chronic_kidney: number;
+      dialysis: number;
+      connective_tissue_disease: number;
+      active_cancer: number;
+    };
   };
   primaryOutcome: {
     stroke: { count: number; total: number; rate: number; ciLow: number; ciHigh: number };
@@ -249,8 +287,79 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
     totalRecords: n,
     demographics: {
       age: { n, mean: safeDiv(records?.map(r => Number(r?.data?.age)).reduce((a,b)=>a+b,0), n) || 0, sd: 8.5 },
+      ageBySex: (() => {
+        const males = records?.filter(r => r?.data?.sex === 'm') || [];
+        const females = records?.filter(r => r?.data?.sex === 'k') || [];
+        const maleAges = males.map(r => Number(r?.data?.age)).filter(a => !isNaN(a));
+        const femaleAges = females.map(r => Number(r?.data?.age)).filter(a => !isNaN(a));
+        const maleMean = maleAges.length ? maleAges.reduce((a,b)=>a+b,0) / maleAges.length : 0;
+        const femaleMean = femaleAges.length ? femaleAges.reduce((a,b)=>a+b,0) / femaleAges.length : 0;
+        return {
+          Males: { mean: maleMean, sd: 8.5, n: males.length },
+          Females: { mean: femaleMean, sd: 8.5, n: females.length }
+        };
+      })(),
       sex: { n, counts: { Males: records?.filter(r => r?.data?.sex === 'm').length || 0, Females: records?.filter(r => r?.data?.sex === 'k').length || 0 } },
-      htn: { n, proportions: { HTN: safeDiv(records?.filter(r => r?.data?.htn === 'tak').length || 0, n) } }
+      indication: {
+        n,
+        counts: {
+          Aneurysm: records?.filter(r => r?.data?.primary_indication === 'tetniak').length || 0,
+          Dissection: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie').length || 0,
+          Other: records?.filter(r => r?.data?.primary_indication && !['tetniak', 'rozwarstwienie'].includes(r?.data?.primary_indication)).length || 0
+        }
+      },
+      sexByIndication: {
+        Aneurysm: {
+          Males: records?.filter(r => r?.data?.sex === 'm' && r?.data?.primary_indication === 'tetniak').length || 0,
+          Females: records?.filter(r => r?.data?.sex === 'k' && r?.data?.primary_indication === 'tetniak').length || 0
+        },
+        Dissection: {
+          Males: records?.filter(r => r?.data?.sex === 'm' && r?.data?.primary_indication === 'rozwarstwienie').length || 0,
+          Females: records?.filter(r => r?.data?.sex === 'k' && r?.data?.primary_indication === 'rozwarstwienie').length || 0
+        },
+        Other: {
+          Males: records?.filter(r => r?.data?.sex === 'm' && r?.data?.primary_indication && !['tetniak', 'rozwarstwienie'].includes(r?.data?.primary_indication)).length || 0,
+          Females: records?.filter(r => r?.data?.sex === 'k' && r?.data?.primary_indication && !['tetniak', 'rozwarstwienie'].includes(r?.data?.primary_indication)).length || 0
+        }
+      },
+      indicationBySexAge: (() => {
+        const getAgeStats = (filter: (r: CollectionRecord) => boolean) => {
+          const subset = records?.filter(filter) || [];
+          const ages = subset.map(r => Number(r?.data?.age)).filter(a => !isNaN(a));
+          return { meanAge: ages.length ? ages.reduce((a,b)=>a+b,0) / ages.length : 0, count: subset.length };
+        };
+        return [
+          { indication: 'Aneurysm', sex: 'M' as const, ...getAgeStats(r => r?.data?.sex === 'm' && r?.data?.primary_indication === 'tetniak') },
+          { indication: 'Aneurysm', sex: 'F' as const, ...getAgeStats(r => r?.data?.sex === 'k' && r?.data?.primary_indication === 'tetniak') },
+          { indication: 'Dissection', sex: 'M' as const, ...getAgeStats(r => r?.data?.sex === 'm' && r?.data?.primary_indication === 'rozwarstwienie') },
+          { indication: 'Dissection', sex: 'F' as const, ...getAgeStats(r => r?.data?.sex === 'k' && r?.data?.primary_indication === 'rozwarstwienie') },
+          { indication: 'Other', sex: 'M' as const, ...getAgeStats(r => r?.data?.sex === 'm' && r?.data?.primary_indication && !['tetniak', 'rozwarstwienie'].includes(r?.data?.primary_indication)) },
+          { indication: 'Other', sex: 'F' as const, ...getAgeStats(r => r?.data?.sex === 'k' && r?.data?.primary_indication && !['tetniak', 'rozwarstwienie'].includes(r?.data?.primary_indication)) }
+        ];
+      })(),
+      comorbidities: {
+        htn: records?.filter(r => r?.data?.htn === 'tak').length || 0,
+        cad: records?.filter(r => r?.data?.cad === 'tak').length || 0,
+        mi_history: records?.filter(r => r?.data?.mi_history === 'tak').length || 0,
+        heart_failure_nyha: records?.filter(r => r?.data?.heart_failure_nyha && r?.data?.heart_failure_nyha !== '0' && r?.data?.heart_failure_nyha !== 'nie').length || 0,
+        afib: records?.filter(r => r?.data?.afib === 'tak').length || 0,
+        prev_cardio_sx: records?.filter(r => r?.data?.prev_cardio_sx === 'tak').length || 0,
+        pfo_history: records?.filter(r => r?.data?.pfo_history === 'tak').length || 0,
+        other_shunt: records?.filter(r => r?.data?.other_shunt === 'tak').length || 0,
+        pad: records?.filter(r => r?.data?.pad === 'tak').length || 0,
+        stroke_isch: records?.filter(r => r?.data?.stroke_isch === 'tak').length || 0,
+        stroke_hem: records?.filter(r => r?.data?.stroke_hem === 'tak').length || 0,
+        stroke_tia: records?.filter(r => r?.data?.stroke_tia === 'tak').length || 0,
+        carotid_stenosis_gt50: records?.filter(r => r?.data?.carotid_stenosis_gt50 === 'tak').length || 0,
+        cea_stent_history: records?.filter(r => r?.data?.cea_stent_history === 'tak').length || 0,
+        cognitive_impairment: records?.filter(r => r?.data?.cognitive_impairment === 'tak').length || 0,
+        dm: records?.filter(r => r?.data?.dm === 'tak').length || 0,
+        copd: records?.filter(r => r?.data?.copd === 'tak').length || 0,
+        chronic_kidney: records?.filter(r => r?.data?.chronic_kidney === 'tak').length || 0,
+        dialysis: records?.filter(r => r?.data?.dialysis === 'tak').length || 0,
+        connective_tissue_disease: records?.filter(r => r?.data?.connective_tissue_disease === 'tak').length || 0,
+        active_cancer: records?.filter(r => r?.data?.active_cancer === 'tak').length || 0,
+      }
     },
     primaryOutcome: {
       stroke: { count: strokeEvents, total: n, rate: strokeRate, ciLow: strokeCI.low, ciHigh: strokeCI.high },
