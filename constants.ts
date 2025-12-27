@@ -474,6 +474,11 @@ const generateMockData = () => {
   const strokeAreas = ['mca', 'aca', 'pca', 'vb'];
   const stentgrafts = ['nexus', 'relay', 'cook'];
   const configs = ['branched', 'modular'];
+  const aneurysmSizeCategories = ['lt50', '50_59', '60_69', '70_79', 'ge80'];
+  const aneurysmLocations = ['asc', 'arch', 'desc_p', 'multi'];
+  const treatedVessels = ['bct', 'lcca', 'lsa', 'multi'];
+  const mainAccessSites = ['fem_s', 'fem_p', 'conduit', 'direct'];
+  const addAccessSites = ['rad_r', 'rad_l', 'brach_r', 'brach_l', 'ax_r', 'ax_l'];
   
   for (let i = 1; i <= 50; i++) {
     const isFemale = Math.random() > 0.5;
@@ -497,6 +502,8 @@ const generateMockData = () => {
     const baselineCreat = 70 + Math.floor(Math.random() * 60);
     const hasAki = (contrastVol > 180 || baselineCreat > 110) && Math.random() > 0.7 ? 'tak' : 'nie';
     const isDead = (hasStroke === 'tak' && Math.random() > 0.8) || (Math.random() < 0.03) ? 'tak' : 'nie';
+    
+    const indication = indications[Math.floor(Math.random() * indications.length)];
 
     const data: Record<string, any> = {
       // Section A - Administrative
@@ -552,7 +559,7 @@ const generateMockData = () => {
       ct_dx_age: Math.random() > 0.95 ? 45 : 0,
       
       // Section D - Pathology & Indication
-      primary_indication: indications[Math.floor(Math.random() * indications.length)],
+      primary_indication: indication,
       indication_specify: Math.random() > 0.7 ? 'pseudotetniak' : '',
       aortic_diameter_mm: 50 + Math.floor(Math.random() * 40),
       aortic_diameter_proximal: 45 + Math.floor(Math.random() * 30),
@@ -563,6 +570,38 @@ const generateMockData = () => {
       willis_classification: hasIncompleteCow ? 'inc_both' : 'full',
       CoW_specify: hasIncompleteCow ? 'inc_anterior' : '',
       intracranial_stenosis: Math.random() > 0.8 ? 'tak' : 'nie',
+      
+      // Aneurysm-specific fields (Section D - Pathology)
+      aneurysm_max_diam: indication === 'tetniak' ? 55 + Math.floor(Math.random() * 50) : 0,
+      aneurysm_loc: indication === 'tetniak' ? aneurysmLocations[Math.floor(Math.random() * aneurysmLocations.length)] : '',
+      aneurysm_size_cat: indication === 'tetniak' ? aneurysmSizeCategories[Math.floor(Math.random() * aneurysmSizeCategories.length)] : '',
+      aneurysm_gt_70: indication === 'tetniak' ? (Math.random() > 0.5 ? 'tak' : 'nie') : 'nieznane',
+      aneurysm_symptomatic: indication === 'tetniak' ? (Math.random() > 0.7 ? 'tak' : 'nie') : 'nieznane',
+      aneurysm_rupture_cont: indication === 'tetniak' ? (Math.random() > 0.8 ? 'tak' : 'nie') : 'nieznane',
+      
+      // Dissection-specific fields (Section D - Pathology)
+      stanford_class: indication === 'rozwarstwienie' ? (Math.random() > 0.5 ? 'a' : 'b') : '',
+      dissection_phase: indication === 'rozwarstwienie' ? ['acute', 'subacute', 'chronic'][Math.floor(Math.random() * 3)] : '',
+      malperfusion_syndrome: indication === 'rozwarstwienie' ? (Math.random() > 0.7 ? 'tak' : 'nie') : 'nieznane',
+      
+      // Morphology fields
+      arch_type_ishimaru: ['1', '2', '3'][Math.floor(Math.random() * 3)],
+      thrombus_in_arch: Math.random() > 0.8 ? 'tak' : 'nie',
+      thrombus_in_asc: Math.random() > 0.85 ? 'tak' : 'nie',
+      porcelain_aorta: Math.random() > 0.9 ? 'tak' : 'nie',
+      supraaortic_vessels_inv: ['none', 'bct', 'lcca', 'lsa', 'multi'][Math.floor(Math.random() * 5)],
+      
+      // Section E - Vascular Anatomy (Preoperative)
+      acom_patent: Math.random() > 0.3 ? 'tak' : (Math.random() > 0.5 ? 'nie' : 'nieznane'),
+      segment_a1_aca: ['both', 'r_dom', 'l_dom', 'hypo'][Math.floor(Math.random() * 4)],
+      r_pcom_patent: Math.random() > 0.5 ? 'tak' : (Math.random() > 0.5 ? 'nie' : 'nieznane'),
+      l_pcom_patent: Math.random() > 0.5 ? 'tak' : (Math.random() > 0.5 ? 'nie' : 'nieznane'),
+      r_va_status: ['patent', 'hypo', 'pica', 'occl', 'na'][Math.floor(Math.random() * 5)],
+      l_va_status: ['patent', 'hypo', 'pica', 'occl', 'na'][Math.floor(Math.random() * 5)],
+      va_dominance: ['codom', 'r_dom', 'l_dom'][Math.floor(Math.random() * 3)],
+      r_ica_status: ['patent', 'sten_lt50', 'sten_50_69', 'sten_70_99', 'occl'][Math.floor(Math.random() * 5)],
+      l_ica_status: ['patent', 'sten_lt50', 'sten_50_69', 'sten_70_99', 'occl'][Math.floor(Math.random() * 5)],
+      posterior_risk: ['low', 'med', 'high'][Math.floor(Math.random() * 3)],
       
       // Section E - Procedure Details
       urgency_proc: urgency,
@@ -591,6 +630,14 @@ const generateMockData = () => {
       sci_any: Math.random() > 0.92 ? 'tak' : 'nie',
       sci_severity: Math.random() > 0.92 ? (Math.random() > 0.5 ? 'weak' : 'paral') : '',
       sci_onset_h_post_proc: Math.random() > 0.92 ? 2 + Math.floor(Math.random() * 12) : 0,
+      
+      // Section G - Procedural (Device & Access)
+      treated_arch_branches_count: ['1', '2', '3'][Math.floor(Math.random() * 3)],
+      treated_vessels: treatedVessels[Math.floor(Math.random() * treatedVessels.length)],
+      lsa_coverage_no_revasc: Math.random() > 0.8 ? 'tak' : 'nie',
+      bypass_cs_p: Math.random() > 0.85 ? 'tak' : 'nie',
+      main_access_site: mainAccessSites[Math.floor(Math.random() * mainAccessSites.length)],
+      add_access_site: Math.random() > 0.5 ? addAccessSites[Math.floor(Math.random() * addAccessSites.length)] : '',
       
       // Section F - 30-Day Outcomes
       any_stroke_30d: hasStroke,

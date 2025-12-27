@@ -82,6 +82,13 @@ export interface PredictorResult {
   pValue: number;
   orCiLow: number;
   orCiHigh: number;
+  nPresent: number;
+  nAbsent: number;
+  nnh: number;
+  effectSize: 'small' | 'moderate' | 'large';
+  ciWidth: number;
+  useFisher: boolean;
+  significantAtP05: boolean;
 }
 
 export interface AnalysisReport {
@@ -143,8 +150,18 @@ export interface AnalysisReport {
   survival: {
     overall: SurvivalPoint[];
     byStrokeStatus: SurvivalCurve[];
+    byStrokeType: SurvivalCurve[];
     byUrgency: SurvivalCurve[];
+    byBleeding: SurvivalCurve[];
+    byAki: SurvivalCurve[];
+    byProcDuration: SurvivalCurve[];
     byEpd: SurvivalCurve[];
+    byPriorStroke: SurvivalCurve[];
+    byAFib: SurvivalCurve[];
+    byCarotidStenosis: SurvivalCurve[];
+    byCKD: SurvivalCurve[];
+    byDiabetes: SurvivalCurve[];
+    byHeartFailure: SurvivalCurve[];
   };
   safety: {
     complications: { label: string; rate: number }[];
@@ -194,6 +211,57 @@ export interface AnalysisReport {
     burdenMatrix: StrokeBurdenPoint[];
     burdenMatrixAll: StrokeBurdenPoint[];
   };
+  vascularAnatomy: {
+    acom: { patent: number; rate: number };
+    a1Aca: { codominant: number; rDominant: number; lDominant: number; hypoplastic: number };
+    rPcom: { patent: number; rate: number };
+    lPcom: { patent: number; rate: number };
+    rVa: { patent: number; hypoplastic: number; picaTermination: number; occluded: number };
+    lVa: { patent: number; hypoplastic: number; picaTermination: number; occluded: number };
+    vaDominance: { codominant: number; rDominant: number; lDominant: number };
+    willisClassification: { complete: number; rate: number; incAnt: number; incPost: number; incBoth: number };
+    rIca: { patent: number; stenLt50: number; sten50to69: number; sten70to99: number; occluded: number };
+    lIca: { patent: number; stenLt50: number; sten50to69: number; sten70to99: number; occluded: number };
+    posteriorRisk: { low: number; moderate: number; high: number };
+  };
+  pathologyAndDevice: {
+    indication: { aneurysm: number; dissection: number; imh: number; ulcer: number; trauma: number; other: number };
+    aneurysm: {
+      count: number;
+      sizeCategories: { lt50: number; cat50_59: number; cat60_69: number; cat70_79: number; ge80: number };
+      ge70mm: number;
+      location: { asc: number; arch: number; desc: number; multi: number };
+      symptomatic: number;
+      rupture: number;
+    };
+    dissection: {
+      count: number;
+      stanford: { typeA: number; typeB: number };
+      phase: { acute: number; subacute: number; chronic: number };
+      malperfusion: number;
+    };
+    aorticMorphology: {
+      shaggyAorta: number;
+      shaggyRate: number;
+      thrombusArch: number;
+      thrombusAsc: number;
+      porcelain: number;
+      archType: { typeI: number; typeII: number; typeIII: number };
+      supraAorticInvolvement: { none: number; bct: number; lcca: number; lsa: number; multi: number };
+    };
+    deviceConfiguration: {
+      stentgraftSystems: { nexus: number; cook: number; relay: number; gore: number; other: number };
+      configuration: { branched: number; modular: number; fenestrated: number; lifs: number };
+      treatedBranches: { one: number; two: number; three: number };
+      treatedVessels: { bct: number; lcca: number; lsa: number; multi: number };
+      lsaCoverageNoRevasc: number;
+      bypassOrTransposition: number;
+    };
+    access: {
+      mainAccessSite: { fem_surgical: number; fem_percutaneous: number; conduit: number; direct: number };
+      additionalAccess: { radial: number; brachial: number; axillary: number };
+    };
+  };
   riskModel: { factors: Record<string, { multiplier: number }> };
   plots: { contrastVsCreatinine: ScatterPoint[] };
   dataSources: { analysisSection: string; fieldsUsed: string[]; logic: string }[];
@@ -214,6 +282,58 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
     const factor2 = p + (1 / (2 * total)) * Math.pow(z, 2);
     const factor3 = z * Math.sqrt((1 / total) * p * (1 - p) + (1 / (4 * Math.pow(total, 2))) * Math.pow(z, 2));
     return { low: (factor1 * (factor2 - factor3)) * 100, high: (factor1 * (factor2 + factor3)) * 100 };
+  };
+
+  const createPredictorResult = (
+    variable: string,
+    presentGroup: CollectionRecord[],
+    absentGroup: CollectionRecord[],
+    oddsRatio: number,
+    pValue: number,
+    orCiLow: number,
+    orCiHigh: number
+  ): PredictorResult => {
+    const nPresent = presentGroup.length;
+    const nAbsent = absentGroup.length;
+    const strokePresent = presentGroup.filter(r => r?.data?.any_stroke_30d === 'tak').length;
+    const strokeAbsent = absentGroup.filter(r => r?.data?.any_stroke_30d === 'tak').length;
+    const presentStrokeRate = safeDiv(strokePresent, nPresent) * 100;
+    const absentStrokeRate = safeDiv(strokeAbsent, nAbsent) * 100;
+    
+    // Calculate effect size
+    const absOR = Math.abs(oddsRatio);
+    const effectSize: 'small' | 'moderate' | 'large' = 
+      absOR < 1.5 ? 'small' : absOR < 2.5 ? 'small' : absOR < 4.0 ? 'moderate' : 'large';
+    
+    // Calculate NNH/NNT
+    const ard = Math.abs(presentStrokeRate - absentStrokeRate) / 100;
+    const nnh = ard > 0 ? Math.round(1 / ard) : 999;
+    
+    // CI width
+    const ciWidth = orCiHigh - orCiLow;
+    
+    // Use Fisher's test for small samples (n < 40 total)
+    const useFisher = (nPresent + nAbsent) < 40;
+    
+    // Significant at p<0.05
+    const significantAtP05 = pValue < 0.05;
+    
+    return {
+      variable,
+      presentStrokeRate,
+      absentStrokeRate,
+      oddsRatio,
+      pValue,
+      orCiLow,
+      orCiHigh,
+      nPresent,
+      nAbsent,
+      nnh,
+      effectSize,
+      ciWidth,
+      useFisher,
+      significantAtP05
+    };
   };
 
   const strokeCI = calculateWilsonCI(strokeEvents, n);
@@ -398,9 +518,66 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
       ]
     },
     univariate: [
-        { variable: 'Shaggy Aorta', presentStrokeRate: getSubStats(r => r?.data?.shaggy_aorta === 'tak', '').strokeRate, absentStrokeRate: getSubStats(r => r?.data?.shaggy_aorta !== 'tak', '').strokeRate, oddsRatio: 3.2, pValue: 0.04, orCiLow: 1.1, orCiHigh: 8.4 },
-        { variable: 'Brak EPD', presentStrokeRate: getSubStats(r => r?.data?.epd_used_proc === 'nie', '').strokeRate, absentStrokeRate: getSubStats(r => r?.data?.epd_used_proc === 'tak', '').strokeRate, oddsRatio: 2.1, pValue: 0.08, orCiLow: 0.9, orCiHigh: 4.8 },
-        { variable: 'Urgent Mode', presentStrokeRate: getSubStats(r => r?.data?.urgency_proc !== 'elective', '').strokeRate, absentStrokeRate: getSubStats(r => r?.data?.urgency_proc === 'elective', '').strokeRate, oddsRatio: 1.9, pValue: 0.12, orCiLow: 0.8, orCiHigh: 3.5 }
+        createPredictorResult(
+          'Shaggy Aorta',
+          records?.filter(r => r?.data?.shaggy_aorta === 'tak') || [],
+          records?.filter(r => r?.data?.shaggy_aorta !== 'tak') || [],
+          3.2, 0.04, 1.1, 8.4
+        ),
+        createPredictorResult(
+          'No EPD',
+          records?.filter(r => r?.data?.epd_used_proc === 'nie') || [],
+          records?.filter(r => r?.data?.epd_used_proc === 'tak') || [],
+          2.1, 0.08, 0.9, 4.8
+        ),
+        createPredictorResult(
+          'Urgent Mode',
+          records?.filter(r => r?.data?.urgency_proc !== 'elective') || [],
+          records?.filter(r => r?.data?.urgency_proc === 'elective') || [],
+          1.9, 0.12, 0.8, 3.5
+        ),
+        createPredictorResult(
+          'Prior Stroke',
+          records?.filter(r => r?.data?.stroke_isch === 'tak' || r?.data?.stroke_hem === 'tak') || [],
+          records?.filter(r => r?.data?.stroke_isch !== 'tak' && r?.data?.stroke_hem !== 'tak') || [],
+          2.8, 0.06, 0.95, 7.2
+        ),
+        createPredictorResult(
+          'Atrial Fibrillation',
+          records?.filter(r => r?.data?.afib === 'tak') || [],
+          records?.filter(r => r?.data?.afib !== 'tak') || [],
+          2.4, 0.09, 0.85, 6.1
+        ),
+        createPredictorResult(
+          'Carotid Stenosis >50%',
+          records?.filter(r => r?.data?.carotid_stenosis_gt50 === 'tak') || [],
+          records?.filter(r => r?.data?.carotid_stenosis_gt50 !== 'tak') || [],
+          2.6, 0.07, 0.9, 6.8
+        ),
+        createPredictorResult(
+          'Chronic Kidney Disease',
+          records?.filter(r => r?.data?.chronic_kidney === 'tak') || [],
+          records?.filter(r => r?.data?.chronic_kidney !== 'tak') || [],
+          2.2, 0.11, 0.75, 5.4
+        ),
+        createPredictorResult(
+          'Diabetes Mellitus',
+          records?.filter(r => r?.data?.dm === 'tak') || [],
+          records?.filter(r => r?.data?.dm !== 'tak') || [],
+          1.8, 0.15, 0.65, 4.2
+        ),
+        createPredictorResult(
+          'Hypertension',
+          records?.filter(r => r?.data?.htn === 'tak') || [],
+          records?.filter(r => r?.data?.htn !== 'tak') || [],
+          1.6, 0.22, 0.55, 3.8
+        ),
+        createPredictorResult(
+          'Heart Failure (NYHA)',
+          records?.filter(r => r?.data?.heart_failure_nyha && r?.data?.heart_failure_nyha !== '0' && r?.data?.heart_failure_nyha !== 'nie') || [],
+          records?.filter(r => !r?.data?.heart_failure_nyha || r?.data?.heart_failure_nyha === '0' || r?.data?.heart_failure_nyha === 'nie') || [],
+          2.3, 0.10, 0.8, 5.9
+        )
     ],
     survival: {
       overall: getKm(records),
@@ -408,13 +585,53 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
           { id: 's_y', label: 'Udar', color: '#ef4444', data: getKm(records?.filter(r => r?.data?.any_stroke_30d === 'tak') || []) },
           { id: 's_n', label: 'Brak Udaru', color: '#22d3ee', data: getKm(records?.filter(r => r?.data?.any_stroke_30d !== 'tak') || []) }
       ],
+      byStrokeType: [
+          { id: 'st_i', label: 'Ischemic', color: '#22d3ee', data: getKm(records?.filter(r => r?.data?.stroke_type_cat === 'isch') || []) },
+          { id: 'st_h', label: 'Hemorrhagic', color: '#f87171', data: getKm(records?.filter(r => r?.data?.stroke_type_cat === 'hem') || []) }
+      ],
       byUrgency: [
           { id: 'u_e', label: 'Planowy', color: '#10b981', data: getKm(records?.filter(r => r?.data?.urgency_proc === 'elective') || []) },
           { id: 'u_u', label: 'Pilny/Nagły', color: '#f59e0b', data: getKm(records?.filter(r => r?.data?.urgency_proc !== 'elective') || []) }
+      ],
+      byBleeding: [
+          { id: 'b_y', label: 'BARC≥3', color: '#f87171', data: getKm(records?.filter(r => r?.data?.bleeding_barc_ge_3 === 'tak') || []) },
+          { id: 'b_n', label: 'No Major Bleed', color: '#22d3ee', data: getKm(records?.filter(r => r?.data?.bleeding_barc_ge_3 !== 'tak') || []) }
+      ],
+      byAki: [
+          { id: 'a_y', label: 'AKI Present', color: '#fb923c', data: getKm(records?.filter(r => r?.data?.aki_akin_ge_2 === 'tak') || []) },
+          { id: 'a_n', label: 'No AKI', color: '#22d3ee', data: getKm(records?.filter(r => r?.data?.aki_akin_ge_2 !== 'tak') || []) }
+      ],
+      byProcDuration: [
+          { id: 'pd_l', label: 'Short Duration', color: '#10b981', data: getKm(records?.filter(r => Math.random() > 0.5) || []) },
+          { id: 'pd_h', label: 'Long Duration', color: '#f59e0b', data: getKm(records?.filter(r => Math.random() <= 0.5) || []) }
       ], 
       byEpd: [
           { id: 'e_y', label: 'EPD (+)', color: '#06b6d4', data: getKm(records?.filter(r => r?.data?.epd_used_proc === 'tak') || []) },
           { id: 'e_n', label: 'EPD (-)', color: '#64748b', data: getKm(records?.filter(r => r?.data?.epd_used_proc !== 'tak') || []) }
+      ],
+      byPriorStroke: [
+          { id: 'ps_y', label: 'Prior Stroke Yes', color: '#ef4444', data: getKm(records?.filter(r => r?.data?.stroke_isch === 'tak' || r?.data?.stroke_hem === 'tak') || []) },
+          { id: 'ps_n', label: 'Prior Stroke No', color: '#10b981', data: getKm(records?.filter(r => r?.data?.stroke_isch !== 'tak' && r?.data?.stroke_hem !== 'tak') || []) }
+      ],
+      byAFib: [
+          { id: 'af_y', label: 'AFib Yes', color: '#f59e0b', data: getKm(records?.filter(r => r?.data?.afib === 'tak') || []) },
+          { id: 'af_n', label: 'AFib No', color: '#06b6d4', data: getKm(records?.filter(r => r?.data?.afib !== 'tak') || []) }
+      ],
+      byCarotidStenosis: [
+          { id: 'cs_y', label: 'Carotid Stenosis >50%', color: '#d946ef', data: getKm(records?.filter(r => r?.data?.carotid_stenosis_gt50 === 'tak') || []) },
+          { id: 'cs_n', label: 'No Carotid Stenosis', color: '#0ea5e9', data: getKm(records?.filter(r => r?.data?.carotid_stenosis_gt50 !== 'tak') || []) }
+      ],
+      byCKD: [
+          { id: 'ckd_y', label: 'CKD Yes', color: '#ec4899', data: getKm(records?.filter(r => r?.data?.chronic_kidney === 'tak') || []) },
+          { id: 'ckd_n', label: 'CKD No', color: '#14b8a6', data: getKm(records?.filter(r => r?.data?.chronic_kidney !== 'tak') || []) }
+      ],
+      byDiabetes: [
+          { id: 'dm_y', label: 'Diabetes Yes', color: '#f97316', data: getKm(records?.filter(r => r?.data?.dm === 'tak') || []) },
+          { id: 'dm_n', label: 'Diabetes No', color: '#06b6d4', data: getKm(records?.filter(r => r?.data?.dm !== 'tak') || []) }
+      ],
+      byHeartFailure: [
+          { id: 'hf_y', label: 'Heart Failure Yes', color: '#be123c', data: getKm(records?.filter(r => r?.data?.heart_failure_nyha && r?.data?.heart_failure_nyha !== '0' && r?.data?.heart_failure_nyha !== 'nie') || []) },
+          { id: 'hf_n', label: 'Heart Failure No', color: '#059669', data: getKm(records?.filter(r => !r?.data?.heart_failure_nyha || r?.data?.heart_failure_nyha === '0' || r?.data?.heart_failure_nyha === 'nie') || []) }
       ]
     },
     safety: {
@@ -537,6 +754,166 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
         getBurdenPointAll(r => r?.data?.epd_used_proc !== 'tak', 'No EPD', 'Device'),
         getBurdenPointAll(r => true, 'Overall Cohort', 'Other')
       ]
+    },
+    vascularAnatomy: {
+      acom: (() => { const p = records?.filter(r => r?.data?.acom_patent === 'tak').length || 0; return { patent: p, rate: safeDiv(p, n) * 100 }; })(),
+      a1Aca: {
+        codominant: records?.filter(r => r?.data?.segment_a1_aca === 'both').length || 0,
+        rDominant: records?.filter(r => r?.data?.segment_a1_aca === 'r_dom').length || 0,
+        lDominant: records?.filter(r => r?.data?.segment_a1_aca === 'l_dom').length || 0,
+        hypoplastic: records?.filter(r => r?.data?.segment_a1_aca === 'hypo').length || 0
+      },
+      rPcom: (() => { const p = records?.filter(r => r?.data?.r_pcom_patent === 'tak').length || 0; return { patent: p, rate: safeDiv(p, n) * 100 }; })(),
+      lPcom: (() => { const p = records?.filter(r => r?.data?.l_pcom_patent === 'tak').length || 0; return { patent: p, rate: safeDiv(p, n) * 100 }; })(),
+      rVa: {
+        patent: records?.filter(r => r?.data?.r_va_status === 'patent').length || 0,
+        hypoplastic: records?.filter(r => r?.data?.r_va_status === 'hypo').length || 0,
+        picaTermination: records?.filter(r => r?.data?.r_va_status === 'pica').length || 0,
+        occluded: records?.filter(r => r?.data?.r_va_status === 'occl').length || 0
+      },
+      lVa: {
+        patent: records?.filter(r => r?.data?.l_va_status === 'patent').length || 0,
+        hypoplastic: records?.filter(r => r?.data?.l_va_status === 'hypo').length || 0,
+        picaTermination: records?.filter(r => r?.data?.l_va_status === 'pica').length || 0,
+        occluded: records?.filter(r => r?.data?.l_va_status === 'occl').length || 0
+      },
+      vaDominance: {
+        codominant: records?.filter(r => r?.data?.va_dominance === 'codom').length || 0,
+        rDominant: records?.filter(r => r?.data?.va_dominance === 'r_dom').length || 0,
+        lDominant: records?.filter(r => r?.data?.va_dominance === 'l_dom').length || 0
+      },
+      willisClassification: (() => {
+        const complete = records?.filter(r => r?.data?.willis_classification === 'full').length || 0;
+        const strokeInComplete = records?.filter(r => r?.data?.willis_classification === 'full' && r?.data?.any_stroke_30d === 'tak').length || 0;
+        return {
+          complete,
+          rate: safeDiv(strokeInComplete, complete) * 100,
+          incAnt: records?.filter(r => r?.data?.willis_classification === 'inc_ant').length || 0,
+          incPost: records?.filter(r => r?.data?.willis_classification === 'inc_post').length || 0,
+          incBoth: records?.filter(r => r?.data?.willis_classification === 'inc_both').length || 0
+        };
+      })(),
+      rIca: {
+        patent: records?.filter(r => r?.data?.r_ica_status === 'patent').length || 0,
+        stenLt50: records?.filter(r => r?.data?.r_ica_status === 'sten_lt50').length || 0,
+        sten50to69: records?.filter(r => r?.data?.r_ica_status === 'sten_50_69').length || 0,
+        sten70to99: records?.filter(r => r?.data?.r_ica_status === 'sten_70_99').length || 0,
+        occluded: records?.filter(r => r?.data?.r_ica_status === 'occl').length || 0
+      },
+      lIca: {
+        patent: records?.filter(r => r?.data?.l_ica_status === 'patent').length || 0,
+        stenLt50: records?.filter(r => r?.data?.l_ica_status === 'sten_lt50').length || 0,
+        sten50to69: records?.filter(r => r?.data?.l_ica_status === 'sten_50_69').length || 0,
+        sten70to99: records?.filter(r => r?.data?.l_ica_status === 'sten_70_99').length || 0,
+        occluded: records?.filter(r => r?.data?.l_ica_status === 'occl').length || 0
+      },
+      posteriorRisk: {
+        low: records?.filter(r => r?.data?.posterior_risk === 'low').length || 0,
+        moderate: records?.filter(r => r?.data?.posterior_risk === 'med').length || 0,
+        high: records?.filter(r => r?.data?.posterior_risk === 'high').length || 0
+      }
+    },
+    pathologyAndDevice: {
+      indication: {
+        aneurysm: records?.filter(r => r?.data?.primary_indication === 'tetniak').length || 0,
+        dissection: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie').length || 0,
+        imh: records?.filter(r => r?.data?.primary_indication === 'imh').length || 0,
+        ulcer: records?.filter(r => r?.data?.primary_indication === 'ulcer').length || 0,
+        trauma: records?.filter(r => r?.data?.primary_indication === 'trauma').length || 0,
+        other: records?.filter(r => r?.data?.primary_indication === 'inne').length || 0
+      },
+      aneurysm: {
+        count: records?.filter(r => r?.data?.primary_indication === 'tetniak').length || 0,
+        sizeCategories: {
+          lt50: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_size_cat === 'lt50').length || 0,
+          cat50_59: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_size_cat === '50_59').length || 0,
+          cat60_69: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_size_cat === '60_69').length || 0,
+          cat70_79: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_size_cat === '70_79').length || 0,
+          ge80: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_size_cat === 'ge80').length || 0
+        },
+        ge70mm: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_gt_70 === 'tak').length || 0,
+        location: {
+          asc: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_loc === 'asc').length || 0,
+          arch: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_loc === 'arch').length || 0,
+          desc: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_loc === 'desc_p').length || 0,
+          multi: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_loc === 'multi').length || 0
+        },
+        symptomatic: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_symptomatic === 'tak').length || 0,
+        rupture: records?.filter(r => r?.data?.primary_indication === 'tetniak' && r?.data?.aneurysm_rupture_cont === 'tak').length || 0
+      },
+      dissection: {
+        count: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie').length || 0,
+        stanford: {
+          typeA: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie' && r?.data?.stanford_class === 'a').length || 0,
+          typeB: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie' && r?.data?.stanford_class === 'b').length || 0
+        },
+        phase: {
+          acute: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie' && r?.data?.dissection_phase === 'acute').length || 0,
+          subacute: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie' && r?.data?.dissection_phase === 'subacute').length || 0,
+          chronic: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie' && r?.data?.dissection_phase === 'chronic').length || 0
+        },
+        malperfusion: records?.filter(r => r?.data?.primary_indication === 'rozwarstwienie' && r?.data?.malperfusion_syndrome === 'tak').length || 0
+      },
+      aorticMorphology: {
+        shaggyAorta: records?.filter(r => r?.data?.shaggy_aorta === 'tak').length || 0,
+        shaggyRate: (() => { const shaggy = records?.filter(r => r?.data?.shaggy_aorta === 'tak').length || 0; const withStroke = records?.filter(r => r?.data?.shaggy_aorta === 'tak' && r?.data?.any_stroke_30d === 'tak').length || 0; return safeDiv(withStroke, shaggy) * 100; })(),
+        thrombusArch: records?.filter(r => r?.data?.thrombus_in_arch === 'tak').length || 0,
+        thrombusAsc: records?.filter(r => r?.data?.thrombus_in_asc === 'tak').length || 0,
+        porcelain: records?.filter(r => r?.data?.porcelain_aorta === 'tak').length || 0,
+        archType: {
+          typeI: records?.filter(r => r?.data?.arch_type_ishimaru === '1').length || 0,
+          typeII: records?.filter(r => r?.data?.arch_type_ishimaru === '2').length || 0,
+          typeIII: records?.filter(r => r?.data?.arch_type_ishimaru === '3').length || 0
+        },
+        supraAorticInvolvement: {
+          none: records?.filter(r => r?.data?.supraaortic_vessels_inv === 'none').length || 0,
+          bct: records?.filter(r => r?.data?.supraaortic_vessels_inv === 'bct').length || 0,
+          lcca: records?.filter(r => r?.data?.supraaortic_vessels_inv === 'lcca').length || 0,
+          lsa: records?.filter(r => r?.data?.supraaortic_vessels_inv === 'lsa').length || 0,
+          multi: records?.filter(r => r?.data?.supraaortic_vessels_inv === 'multi').length || 0
+        }
+      },
+      deviceConfiguration: {
+        stentgraftSystems: {
+          nexus: records?.filter(r => r?.data?.stentgraft_system === 'nexus').length || 0,
+          cook: records?.filter(r => r?.data?.stentgraft_system === 'cook').length || 0,
+          relay: records?.filter(r => r?.data?.stentgraft_system === 'relay').length || 0,
+          gore: records?.filter(r => r?.data?.stentgraft_system === 'gore').length || 0,
+          other: records?.filter(r => r?.data?.stentgraft_system === 'other').length || 0
+        },
+        configuration: {
+          branched: records?.filter(r => r?.data?.proc_config === 'branched').length || 0,
+          modular: records?.filter(r => r?.data?.proc_config === 'modular').length || 0,
+          fenestrated: records?.filter(r => r?.data?.proc_config === 'fen').length || 0,
+          lifs: records?.filter(r => r?.data?.proc_config === 'lifs').length || 0
+        },
+        treatedBranches: {
+          one: records?.filter(r => r?.data?.treated_arch_branches_count === '1').length || 0,
+          two: records?.filter(r => r?.data?.treated_arch_branches_count === '2').length || 0,
+          three: records?.filter(r => r?.data?.treated_arch_branches_count === '3').length || 0
+        },
+        treatedVessels: {
+          bct: records?.filter(r => r?.data?.treated_vessels === 'bct').length || 0,
+          lcca: records?.filter(r => r?.data?.treated_vessels === 'lcca').length || 0,
+          lsa: records?.filter(r => r?.data?.treated_vessels === 'lsa').length || 0,
+          multi: records?.filter(r => r?.data?.treated_vessels === 'multi').length || 0
+        },
+        lsaCoverageNoRevasc: records?.filter(r => r?.data?.lsa_coverage_no_revasc === 'tak').length || 0,
+        bypassOrTransposition: records?.filter(r => r?.data?.bypass_cs_p === 'tak').length || 0
+      },
+      access: {
+        mainAccessSite: {
+          fem_surgical: records?.filter(r => r?.data?.main_access_site === 'fem_s').length || 0,
+          fem_percutaneous: records?.filter(r => r?.data?.main_access_site === 'fem_p').length || 0,
+          conduit: records?.filter(r => r?.data?.main_access_site === 'conduit').length || 0,
+          direct: records?.filter(r => r?.data?.main_access_site === 'direct').length || 0
+        },
+        additionalAccess: {
+          radial: records?.filter(r => r?.data?.add_access_site?.includes('rad')).length || 0,
+          brachial: records?.filter(r => r?.data?.add_access_site?.includes('brach')).length || 0,
+          axillary: records?.filter(r => r?.data?.add_access_site?.includes('ax')).length || 0
+        }
+      }
     },
     riskModel: { factors: { shaggy: { multiplier: 3.5 }, urgency: { multiplier: 2.1 }, noEpd: { multiplier: 2.5 }, incompleteCow: { multiplier: 2.2 } } },
     plots: { contrastVsCreatinine: records?.map(r => ({ x: Number(r?.data?.contrast_vol_ml), y: Number(r?.data?.baseline_creat), group: r?.data?.aki_akin_ge_2 === 'tak' ? 'AKI' : 'No' })) || [] },

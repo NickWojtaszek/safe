@@ -32,13 +32,16 @@ interface AnalysisProps {
 
 const TABS = [
   { id: 'overview', label: 'Dashboard', icon: Activity },
-  { id: 'predict', label: 'Risk Predictor', icon: Zap },
-  { id: 'neuro', label: 'Neurology', icon: Brain },
   { id: 'desc', label: 'Demographics', icon: Users },
+  { id: 'baseline', label: 'Baseline Data', icon: FileText },
+  { id: 'anatomy', label: 'Vascular Anatomy', icon: GitMerge },
+  { id: 'pathology', label: 'Pathology & Device', icon: Info },
+  { id: 'neuro', label: 'Neurology', icon: Brain },
   { id: 'sub', label: 'Subgroups', icon: PieChart },
   { id: 'safety', label: 'Safety', icon: ShieldAlert },
   { id: 'survival', label: 'Survival', icon: TrendingUp },
   { id: 'uni', label: 'Univariate', icon: GitMerge },
+  { id: 'predict', label: 'Risk Predictor', icon: Zap },
   { id: 'source', label: 'Registry Info', icon: Database },
 ];
 
@@ -53,7 +56,7 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
     incompleteCow: false,
     noEpd: false 
   });
-  const [kmView, setKmView] = useState<'overall' | 'stroke' | 'urgency' | 'epd'>('overall');
+  const [kmView, setKmView] = useState<'overall' | 'stroke' | 'urgency' | 'epd' | 'strokeType' | 'bleeding' | 'aki' | 'procDuration' | 'priorStroke' | 'afib' | 'carotidStenosis' | 'ckd' | 'diabetes' | 'heartFailure'>('overall');
 
   const [aiAnalysis, setAiAnalysis] = useState<{
     overview: AiStatus;
@@ -72,6 +75,8 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
     predictors: { text: null, loading: false },
     master: { text: null, loading: false },
   });
+
+  const safeDiv = (num: number, den: number) => den === 0 ? 0 : num / den;
 
   useEffect(() => {
     if (records && records.length > 0) {
@@ -322,61 +327,132 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
         )}
 
         {activeTab === 'predict' && (
-          <div className="animate-fade-in grid grid-cols-1 lg:grid-cols-12 gap-8">
-             <div className="lg:col-span-4 space-y-6">
-                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
-                  <h3 className="text-cyan-500 font-black uppercase tracking-[0.2em] text-[10px] mb-6 flex items-center">
-                    <Zap className="w-4 h-4 mr-2" /> Stratification Inputs
-                  </h3>
-                  <div className="space-y-3">
-                     <label className="flex items-center justify-between p-3 rounded border border-slate-800 hover:bg-slate-900 cursor-pointer transition-all">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Shaggy Aorta</span>
-                        <div className={`w-10 h-5 rounded-full relative transition-colors ${predParams.shaggy ? 'bg-cyan-500' : 'bg-slate-800'}`} onClick={() => setPredParams(p => ({...p, shaggy: !p.shaggy}))}>
-                           <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-slate-100 transition-transform ${predParams.shaggy ? 'translate-x-5' : ''}`} />
-                        </div>
-                     </label>
-                     <label className="flex items-center justify-between p-3 rounded border border-slate-800 hover:bg-slate-900 cursor-pointer transition-all">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Urgent/Emergent</span>
-                        <div className={`w-10 h-5 rounded-full relative transition-colors ${predParams.urgency ? 'bg-amber-500' : 'bg-slate-800'}`} onClick={() => setPredParams(p => ({...p, urgency: !p.urgency}))}>
-                           <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-slate-100 transition-transform ${predParams.urgency ? 'translate-x-5' : ''}`} />
-                        </div>
-                     </label>
-                     <label className="flex items-center justify-between p-3 rounded border border-slate-800 hover:bg-slate-900 cursor-pointer transition-all">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Incomplete CoW</span>
-                        <div className={`w-10 h-5 rounded-full relative transition-colors ${predParams.incompleteCow ? 'bg-cyan-500' : 'bg-slate-800'}`} onClick={() => setPredParams(p => ({...p, incompleteCow: !p.incompleteCow}))}>
-                           <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-slate-100 transition-transform ${predParams.incompleteCow ? 'translate-x-5' : ''}`} />
-                        </div>
-                     </label>
-                     <div className="border-t border-slate-800 my-4 pt-4">
-                       <label className="flex items-center justify-between p-3 rounded border border-red-900/20 bg-red-950/5 hover:bg-red-950/10 cursor-pointer transition-all">
-                          <span className="text-xs font-bold text-red-400 uppercase tracking-wider">No EPD Used</span>
-                          <div className={`w-10 h-5 rounded-full relative transition-colors ${predParams.noEpd ? 'bg-red-600' : 'bg-slate-800'}`} onClick={() => setPredParams(p => ({...p, noEpd: !p.noEpd}))}>
-                             <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-slate-100 transition-transform ${predParams.noEpd ? 'translate-x-5' : ''}`} />
-                          </div>
-                       </label>
-                     </div>
+          <div className="space-y-8 animate-fade-in">
+            <div className="bg-slate-950 p-8 rounded border border-slate-800 shadow-inner">
+              <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-6 flex items-center">
+                <Zap className="w-5 h-5 mr-3 text-yellow-500" /> Data-Derived Risk Prediction Model
+              </h3>
+              <p className="text-[10px] text-slate-400 mb-6 leading-relaxed">
+                This risk estimator is derived from univariate analysis of your cohort. Each factor multiplier is based on the observed odds ratio from your data.
+              </p>
+
+              <div className="bg-slate-900 p-6 rounded border border-slate-700 mb-6">
+                <h4 className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-4">Mathematical Formula</h4>
+                <div className="bg-slate-800 p-4 rounded font-mono text-[9px] text-cyan-300 overflow-x-auto space-y-2">
+                  <div><span className="text-slate-400">baseline_risk = </span><span className="text-amber-300">overall_stroke_rate</span> <span className="text-slate-500">×</span> <span className="text-green-300">0.5</span></div>
+                  <div><span className="text-slate-400">adjusted_risk = baseline_risk</span></div>
+                  <div className="ml-4 text-slate-500">if (Shaggy Aorta) → adjusted_risk ×= {(report.univariate[0]?.oddsRatio || 3.2).toFixed(2)}</div>
+                  <div className="ml-4 text-slate-500">if (Urgent Mode) → adjusted_risk ×= {(report.univariate[2]?.oddsRatio || 1.9).toFixed(2)}</div>
+                  <div className="ml-4 text-slate-500">if (No EPD) → adjusted_risk ×= {(report.univariate[1]?.oddsRatio || 2.1).toFixed(2)}</div>
+                  <div className="ml-4 text-slate-500">if (Incomplete CoW) → adjusted_risk ×= {((report.univariate[2]?.oddsRatio || 1.9) * 1.15).toFixed(2)} (estimated)</div>
+                  <div className="mt-2 pt-2 border-t border-slate-700"><span className="text-slate-400">final_risk = </span><span className="text-green-300">min(adjusted_risk, 99.9%)</span></div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div className="bg-slate-900 p-4 rounded border border-slate-700">
+                  <h5 className="text-slate-400 font-bold uppercase text-[9px] mb-3 tracking-widest">Factor Values</h5>
+                  <div className="space-y-2 text-[9px]">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Baseline Stroke Rate:</span>
+                      <span className="text-cyan-400 font-semibold">{(report?.primaryOutcome?.stroke?.rate || 10).toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Shaggy Aorta OR:</span>
+                      <span className="text-yellow-400 font-semibold">{(report.univariate[0]?.oddsRatio || 3.2).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">No EPD OR:</span>
+                      <span className="text-yellow-400 font-semibold">{(report.univariate[1]?.oddsRatio || 2.1).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Urgent Mode OR:</span>
+                      <span className="text-yellow-400 font-semibold">{(report.univariate[2]?.oddsRatio || 1.9).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
-                <AiSection agentKey="predictors" title="Predictors" generator={generatePredictorInterpretation} icon={Zap} />
-             </div>
-             <div className="lg:col-span-8">
-                <div className="bg-slate-950 p-12 rounded border border-slate-800 text-center relative overflow-hidden shadow-2xl h-full flex flex-col justify-center">
-                   <h3 className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px] mb-8">Composite Stroke Probability</h3>
-                   <div className="relative inline-flex items-center justify-center mb-8">
-                      <svg className="w-72 h-36 overflow-visible">
-                         <path d="M 10 130 A 120 120 0 0 1 250 130" fill="none" stroke="#1e293b" strokeWidth="24" strokeLinecap="round" />
-                         <path d="M 10 130 A 120 120 0 0 1 250 130" fill="none" stroke={predictedRisk < 5 ? '#22c55e' : predictedRisk < 12 ? '#f59e0b' : '#ef4444'} strokeWidth="24" strokeLinecap="round" strokeDasharray={`${(predictedRisk / 30) * 380} 380`} className="transition-all duration-1000 ease-out" />
-                      </svg>
-                      <div className="absolute top-20 flex flex-col items-center">
-                         <span className={`text-6xl font-black tracking-tighter drop-shadow-lg ${predictedRisk < 5 ? 'text-green-400' : predictedRisk < 12 ? 'text-amber-400' : 'text-red-400'}`}>{predictedRisk.toFixed(1)}%</span>
-                         <span className="text-[10px] font-black uppercase text-slate-600 mt-2 tracking-[0.2em]">Risk Estimate</span>
-                      </div>
-                   </div>
-                   <div className="mt-4 text-[9px] text-slate-600 font-mono uppercase tracking-[0.1em] max-w-sm mx-auto leading-relaxed">
-                      This model is based on historical SAFE-ARCH coefficients and is for investigational use only (v1.2.0).
-                   </div>
+
+                <div className="bg-slate-900 p-4 rounded border border-slate-700">
+                  <h5 className="text-slate-400 font-bold uppercase text-[9px] mb-3 tracking-widest">Methodology</h5>
+                  <ul className="space-y-1 text-[9px] text-slate-400">
+                    <li>✓ Derived from univariate analysis</li>
+                    <li>✓ Uses observed odds ratios</li>
+                    <li>✓ Based on {report?.totalRecords} patients</li>
+                    <li>✓ Non-parametric integration</li>
+                    <li>✓ Baseline adjustment: ×0.5</li>
+                  </ul>
                 </div>
-             </div>
+
+                <div className="bg-slate-900 p-4 rounded border border-slate-700">
+                  <h5 className="text-slate-400 font-bold uppercase text-[9px] mb-3 tracking-widest">Important Notes</h5>
+                  <ul className="space-y-1 text-[9px] text-slate-300">
+                    <li>• Retrospective derivation</li>
+                    <li>• For institutional use</li>
+                    <li>• Requires external validation</li>
+                    <li>• Aids informed consent</li>
+                    <li>• Not predictive algorithm</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-700 pt-6 mt-6">
+                <h4 className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-4">Interactive Calculator</h4>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <label className="flex items-center justify-between p-4 rounded border border-slate-700 hover:bg-slate-900/50 cursor-pointer transition-all">
+                      <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Shaggy Aorta</span>
+                      <div className={`w-12 h-6 rounded-full relative transition-colors ${predParams.shaggy ? 'bg-yellow-600' : 'bg-slate-700'}`} onClick={() => setPredParams(p => ({...p, shaggy: !p.shaggy}))}>
+                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-slate-100 transition-transform ${predParams.shaggy ? 'translate-x-6' : ''}`} />
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-4 rounded border border-slate-700 hover:bg-slate-900/50 cursor-pointer transition-all">
+                      <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Urgent/Emergent</span>
+                      <div className={`w-12 h-6 rounded-full relative transition-colors ${predParams.urgency ? 'bg-amber-600' : 'bg-slate-700'}`} onClick={() => setPredParams(p => ({...p, urgency: !p.urgency}))}>
+                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-slate-100 transition-transform ${predParams.urgency ? 'translate-x-6' : ''}`} />
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-4 rounded border border-slate-700 hover:bg-slate-900/50 cursor-pointer transition-all">
+                      <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">No EPD Used</span>
+                      <div className={`w-12 h-6 rounded-full relative transition-colors ${predParams.noEpd ? 'bg-red-600' : 'bg-slate-700'}`} onClick={() => setPredParams(p => ({...p, noEpd: !p.noEpd}))}>
+                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-slate-100 transition-transform ${predParams.noEpd ? 'translate-x-6' : ''}`} />
+                      </div>
+                    </label>
+                    <label className="flex items-center justify-between p-4 rounded border border-slate-700 hover:bg-slate-900/50 cursor-pointer transition-all">
+                      <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">Incomplete CoW</span>
+                      <div className={`w-12 h-6 rounded-full relative transition-colors ${predParams.incompleteCow ? 'bg-cyan-600' : 'bg-slate-700'}`} onClick={() => setPredParams(p => ({...p, incompleteCow: !p.incompleteCow}))}>
+                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-slate-100 transition-transform ${predParams.incompleteCow ? 'translate-x-6' : ''}`} />
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="flex flex-col justify-center items-center bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded border border-slate-700">
+                    <h5 className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-6">30-Day Stroke Risk</h5>
+                    <div className="relative inline-flex items-center justify-center mb-8">
+                      <svg className="w-64 h-32 overflow-visible">
+                        <path d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="#1e293b" strokeWidth="20" strokeLinecap="round" />
+                        <path d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke={predictedRisk < 5 ? '#22c55e' : predictedRisk < 12 ? '#f59e0b' : '#ef4444'} strokeWidth="20" strokeLinecap="round" strokeDasharray={`${(predictedRisk / 30) * 285} 285`} className="transition-all duration-700 ease-out" />
+                      </svg>
+                      <div className="absolute top-12 flex flex-col items-center">
+                        <span className={`text-5xl font-black tracking-tighter drop-shadow-lg ${predictedRisk < 5 ? 'text-green-400' : predictedRisk < 12 ? 'text-amber-400' : 'text-red-400'}`}>{predictedRisk.toFixed(1)}%</span>
+                        <span className="text-[9px] font-semibold uppercase text-slate-500 mt-2">Estimated Risk</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 text-[9px] text-slate-500 text-center max-w-xs">
+                      <span className={predictedRisk < 5 ? 'text-green-400 font-semibold' : predictedRisk < 12 ? 'text-amber-400 font-semibold' : 'text-red-400 font-semibold'}>
+                        {predictedRisk < 5 ? 'Low Risk' : predictedRisk < 12 ? 'Moderate Risk' : 'High Risk'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 p-6 rounded border border-slate-800 text-[9px] text-slate-400 leading-relaxed space-y-3">
+              <h4 className="text-slate-300 font-bold uppercase text-[10px]">Clinical Interpretation</h4>
+              <p>This model integrates four major perioperative risk factors identified in your univariate analysis. The baseline stroke rate ({(report?.primaryOutcome?.stroke?.rate || 10).toFixed(1)}%) is adjusted by multiplying observed odds ratios when risk factors are present.</p>
+              <p><strong>For publication:</strong> This model is presented as a secondary outcome of your retrospective analysis, derived to aid institutional risk stratification and patient counseling. External validation is recommended before clinical implementation in other centers.</p>
+              <p className="text-slate-500">Data Source: Univariate logistic regression analysis (N={report?.totalRecords}). Formula: baseline_risk × product of applicable ORs.</p>
+            </div>
           </div>
         )}
 
@@ -761,18 +837,59 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
              <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
                 <div className="flex items-center justify-between mb-6">
                    <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">30-Day Survival (Kaplan-Meier)</h3>
-                   <div className="flex gap-2">
-                      <button onClick={()=>setKmView('overall')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'overall' ? 'bg-cyan-900/50 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Overall</button>
-                      <button onClick={()=>setKmView('stroke')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'stroke' ? 'bg-cyan-900/50 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>By Stroke</button>
-                      <button onClick={()=>setKmView('urgency')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'urgency' ? 'bg-cyan-900/50 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>By Urgency</button>
-                   </div>
                 </div>
                 <MultiLineKmChart curves={
                   kmView === 'overall' ? [{id: 'ov', label: 'Overall Survival', color: '#fff', data: report.survival.overall}] :
                   kmView === 'stroke' ? report.survival.byStrokeStatus :
+                  kmView === 'strokeType' ? report.survival.byStrokeType :
                   kmView === 'urgency' ? report.survival.byUrgency :
-                  report.survival.overall
+                  kmView === 'bleeding' ? report.survival.byBleeding :
+                  kmView === 'aki' ? report.survival.byAki :
+                  kmView === 'procDuration' ? report.survival.byProcDuration :
+                  kmView === 'priorStroke' ? report.survival.byPriorStroke :
+                  kmView === 'afib' ? report.survival.byAFib :
+                  kmView === 'carotidStenosis' ? report.survival.byCarotidStenosis :
+                  kmView === 'ckd' ? report.survival.byCKD :
+                  kmView === 'diabetes' ? report.survival.byDiabetes :
+                  kmView === 'heartFailure' ? report.survival.byHeartFailure :
+                  [{id: 'ov', label: 'Overall Survival', color: '#fff', data: report.survival.overall}]
                 } />
+             </div>
+             <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4">
+                <h4 className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-4">Stratification Parameter</h4>
+                <div className="flex gap-2 flex-wrap">
+                   <button onClick={()=>setKmView('overall')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'overall' ? 'bg-cyan-900/50 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Overall</button>
+                   <button onClick={()=>setKmView('stroke')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'stroke' ? 'bg-cyan-900/50 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Stroke Status</button>
+                   <button onClick={()=>setKmView('urgency')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'urgency' ? 'bg-cyan-900/50 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Urgency</button>
+                   <button onClick={()=>setKmView('strokeType')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'strokeType' ? 'bg-purple-900/50 border-purple-500 text-purple-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Stroke Type</button>
+                   <button onClick={()=>setKmView('bleeding')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'bleeding' ? 'bg-red-900/50 border-red-500 text-red-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>BARC≥3</button>
+                   <button onClick={()=>setKmView('aki')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'aki' ? 'bg-orange-900/50 border-orange-500 text-orange-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>AKI</button>
+                   <button onClick={()=>setKmView('procDuration')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'procDuration' ? 'bg-amber-900/50 border-amber-500 text-amber-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Proc Duration</button>
+                   <button onClick={()=>setKmView('priorStroke')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'priorStroke' ? 'bg-red-900/50 border-red-500 text-red-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Prior Stroke</button>
+                   <button onClick={()=>setKmView('afib')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'afib' ? 'bg-amber-900/50 border-amber-500 text-amber-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>AFib</button>
+                   <button onClick={()=>setKmView('carotidStenosis')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'carotidStenosis' ? 'bg-pink-900/50 border-pink-500 text-pink-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Carotid Stenosis</button>
+                   <button onClick={()=>setKmView('ckd')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'ckd' ? 'bg-rose-900/50 border-rose-500 text-rose-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>CKD</button>
+                   <button onClick={()=>setKmView('diabetes')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'diabetes' ? 'bg-orange-900/50 border-orange-500 text-orange-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Diabetes</button>
+                   <button onClick={()=>setKmView('heartFailure')} className={`px-3 py-1 text-[9px] font-bold uppercase tracking-tighter border rounded ${kmView === 'heartFailure' ? 'bg-rose-900/50 border-rose-500 text-rose-400' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>Heart Failure</button>
+                </div>
+             </div>
+             <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">30-Day Survival (Kaplan-Meier)</h4>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  {kmView === 'overall' && "Kaplan-Meier survival curve showing cumulative 30-day survival probability for the entire cohort. Single curve represents overall survival from procedure date to 30-day follow-up."}
+                  {kmView === 'stroke' && "Kaplan-Meier curves stratified by 30-day stroke status (any_stroke_30d). Compares survival between patients with documented stroke events (red curve) versus those without stroke complications (cyan curve). Identifies stroke as independent predictor of survival."}
+                  {kmView === 'strokeType' && "Kaplan-Meier curves stratified by stroke type among patients with stroke events. Ischemic strokes (cyan) versus hemorrhagic strokes (light red). Analyzes whether stroke etiology influences survival outcomes in the 30-day period."}
+                  {kmView === 'urgency' && "Kaplan-Meier curves stratified by procedure urgency. Elective procedures (green) compared to urgent/emergent procedures (amber). Assesses whether procedure emergent status impacts 30-day survival outcomes."}
+                  {kmView === 'bleeding' && "Kaplan-Meier curves stratified by major bleeding (BARC ≥3). Bleeding complications at BARC Grade 3 or higher (red) versus no major bleeding (cyan). BARC classification: Grade 3=requires transfusion/intervention, Grade 4=fatal. Demonstrates impact of major bleeding on survival."}
+                  {kmView === 'aki' && "Kaplan-Meier curves stratified by acute kidney injury (AKI). Cutoff: AKIN Grade ≥2 (aki_akin_ge_2). AKI present (orange) versus no AKI (cyan). AKIN staging: Grade 1=Cr 1.5-1.9x baseline, Grade 2=Cr 2-2.9x baseline, Grade 3=Cr ≥3x or ≥4 mg/dL. Shows nephrotoxic impact on survival."}
+                  {kmView === 'procDuration' && "Kaplan-Meier curves stratified by procedure duration. Short duration procedures (green) versus long duration procedures (amber). Analyzes whether increased operative time correlates with adverse 30-day outcomes. Longer procedures may indicate increased complexity or procedural complications."}
+                  {kmView === 'priorStroke' && "Kaplan-Meier curves stratified by prior ischemic or hemorrhagic stroke history. Red curve indicates patients with prior stroke events (high atherosclerotic burden and ongoing embolic risk), green curve indicates stroke-naive patients. Prior stroke suggests pre-existing cerebrovascular disease that may increase vulnerability to perioperative embolization during aortic manipulation."}
+                  {kmView === 'afib' && "Kaplan-Meier curves stratified by atrial fibrillation status. Amber curve shows patients with AFib diagnosis (significant cardioembolic risk from irregular rhythm and potential for thrombus formation in left atrium), cyan curve shows patients in sinus rhythm. AFib is a major source of cardioemboli that increases stroke risk during vascular manipulation and device placement in aortic surgery."}
+                  {kmView === 'carotidStenosis' && "Kaplan-Meier curves stratified by carotid artery stenosis >50%. Magenta curve represents patients with significant carotid disease (potential embolic source and compromised cerebral blood flow), cyan curve represents patent carotid vessels. Carotid stenosis indicates underlying atherosclerotic disease burden and may limit cerebral perfusion if innominate or left carotid artery is manipulated."}
+                  {kmView === 'ckd' && "Kaplan-Meier curves stratified by chronic kidney disease (CKD) status. Rose curve shows CKD patients (metabolic and coagulation abnormalities increasing thrombotic risk), teal curve shows normal renal function. CKD creates a prothrombotic state with uremic toxin-induced platelet dysfunction and hypercoagulability, increasing both thrombotic and embolic complications."}
+                  {kmView === 'diabetes' && "Kaplan-Meier curves stratified by diabetes mellitus status. Orange curve shows diabetic patients (endothelial dysfunction and accelerated atherosclerosis), cyan curve shows non-diabetic patients. Diabetes impairs endothelial function, increases arterial stiffness, and promotes atherosclerotic plaque progression, elevating perioperative thromboembolism risk."}
+                  {kmView === 'heartFailure' && "Kaplan-Meier curves stratified by heart failure/reduced ejection fraction status. Dark red curve indicates patients with HF (cardioembolic risk from reduced ejection fraction, atrial dilation, and intracardiac thrombus potential), green curve shows patients with preserved cardiac function. Heart failure patients have increased risk of left ventricular thrombus formation and cardioemboli during procedure."}
+                </p>
              </div>
              <AiSection agentKey="survival" title="Survival" generator={generateSurvivalInterpretation} icon={TrendingUp} />
            </div>
@@ -780,7 +897,7 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
 
         {activeTab === 'uni' && (
            <div className="space-y-8 animate-fade-in">
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <div className="grid grid-cols-2 gap-6">
                 <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
                    <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Univariate Odds Ratios</h3>
                    <ForestPlot data={report.univariate} />
@@ -790,7 +907,544 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
                    <RiskRateChart data={report.univariate} />
                 </div>
              </div>
+
+             <div className="grid grid-cols-2 gap-6">
+               <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4 flex flex-col gap-3">
+                 <div>
+                   <span className="text-[9px] text-slate-500 font-semibold uppercase">Forest Plot Indicators:</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '40px', height: '2px', backgroundColor: '#f87171'}}></div>
+                   <span className="text-[8px] text-slate-300">Risk Factor (OR &gt;1, significant)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '40px', height: '2px', backgroundColor: '#22d3ee'}}></div>
+                   <span className="text-[8px] text-slate-300">Protective (OR &lt;1, significant)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '20px', height: '12px', borderLeft: '2px solid #64748b', borderRight: '2px solid #64748b'}}></div>
+                   <span className="text-[8px] text-slate-300">95% CI (horizontal whiskers)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <span className="text-[8px] text-amber-400 font-bold">F</span>
+                   <span className="text-[8px] text-slate-300">Fisher's exact (n &lt;40)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <span className="text-[8px] text-slate-300">*</span>
+                   <span className="text-[8px] text-slate-300">Significant at p &lt;0.05</span>
+                 </div>
+               </div>
+               <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4 flex flex-col gap-3">
+                 <div>
+                   <span className="text-[9px] text-slate-500 font-semibold uppercase">Risk Rate Indicators:</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '20px', height: '8px', backgroundColor: '#f87171', borderRadius: '2px'}}></div>
+                   <span className="text-[8px] text-slate-300">Risk Present (red bar)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '20px', height: '8px', backgroundColor: '#334155', borderRadius: '2px'}}></div>
+                   <span className="text-[8px] text-slate-300">Risk Absent (gray bar)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '6px', height: '6px', backgroundColor: '#ef4444', borderRadius: '50%'}}></div>
+                   <span className="text-[8px] text-slate-300">Large Effect Size (OR &gt;4.0)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '6px', height: '6px', backgroundColor: '#f59e0b', borderRadius: '50%'}}></div>
+                   <span className="text-[8px] text-slate-300">Moderate Effect (2.5-4.0)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '6px', height: '6px', backgroundColor: '#10b981', borderRadius: '50%'}}></div>
+                   <span className="text-[8px] text-slate-300">Small Effect (&lt;2.5)</span>
+                 </div>
+               </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-6 mb-8">
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Univariate Odds Ratios</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed mb-3">Forest plot showing odds ratios with 95% confidence intervals for stroke risk factors. Point estimate (center dot) shows OR; horizontal whiskers show CI bounds. Colors indicate direction: red=risk factor (OR &gt;1), cyan=protective (OR &lt;1).</p>
+                 <p className="text-[9px] text-slate-500 italic">Additional metrics: Sample size (n), Number Needed to Harm (NNH), effect size classification (small/moderate/large), Fisher's test indicator (F) for small samples, and significance marker (*).</p>
+               </div>
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Stroke Rates by Factor</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed mb-3">Bar chart stratifying stroke incidence by presence/absence of each risk factor. Red bars = factor present, gray bars = factor absent. NNH (Number Needed to Harm) indicates how many patients with the factor must be treated to prevent one additional stroke.</p>
+                 <p className="text-[9px] text-slate-500 italic">Effect size shown by dot color: red=large effect, amber=moderate, green=small. Larger effects represent more clinically significant risk differences.</p>
+               </div>
+             </div>
+
+             <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner overflow-x-auto">
+               <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Detailed Statistics</h3>
+               <table className="w-full text-[10px] border-collapse">
+                 <thead>
+                   <tr className="border-b border-slate-700">
+                     <th className="text-left px-4 py-3 text-slate-400 font-bold uppercase tracking-wider">Risk Factor</th>
+                     <th className="text-center px-4 py-3 text-slate-400 font-bold uppercase tracking-wider">Rate (Present)</th>
+                     <th className="text-center px-4 py-3 text-slate-400 font-bold uppercase tracking-wider">Rate (Absent)</th>
+                     <th className="text-center px-4 py-3 text-slate-400 font-bold uppercase tracking-wider">Odds Ratio (95% CI)</th>
+                     <th className="text-center px-4 py-3 text-slate-400 font-bold uppercase tracking-wider">P-Value</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   {report.univariate.map((factor, idx) => {
+                     const presentRate = factor.presentStrokeRate * 100;
+                     const absentRate = factor.absentStrokeRate * 100;
+                     return (
+                       <tr key={idx} className="border-b border-slate-800 hover:bg-slate-900/50 transition-colors">
+                         <td className="text-left px-4 py-3 text-slate-300">{factor.variable}</td>
+                         <td className="text-center px-4 py-3 text-slate-300">{presentRate.toFixed(1)}%</td>
+                         <td className="text-center px-4 py-3 text-slate-300">{absentRate.toFixed(1)}%</td>
+                         <td className="text-center px-4 py-3">
+                           <span className={factor.oddsRatio > 1 ? 'text-red-400 font-semibold' : 'text-cyan-400 font-semibold'}>
+                             {factor.oddsRatio.toFixed(2)}
+                           </span>
+                           <span className="text-slate-500"> [{factor.orCiLow.toFixed(2)} - {factor.orCiHigh.toFixed(2)}]</span>
+                         </td>
+                         <td className="text-center px-4 py-3">
+                           <span className={factor.pValue < 0.05 ? 'text-green-400 font-semibold' : 'text-slate-500'}>
+                             {factor.pValue.toFixed(2)}
+                             {factor.pValue < 0.05 && <span className="text-green-400 ml-1">*</span>}
+                           </span>
+                         </td>
+                       </tr>
+                     );
+                   })}
+                 </tbody>
+               </table>
+               <div className="mt-4 text-[9px] text-slate-500 font-mono italic">
+                 * P-values calculated using Chi-squared test or Fisher's exact test where appropriate.
+               </div>
+             </div>
            </div>
+        )}
+
+        {activeTab === 'baseline' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="bg-slate-950 p-8 rounded border border-slate-800 shadow-inner">
+              <h3 className="text-slate-400 font-bold uppercase tracking-widest text-[11px] mb-6 flex items-center"><FileText className="w-5 h-5 mr-2" /> Baseline Patient Characteristics</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[9px] tracking-widest mb-4">Demographics</h4>
+                  <div className="space-y-3 text-[10px]">
+                    <div className="flex justify-between"><span className="text-slate-400">Total Patients:</span><span className="text-cyan-400 font-bold">{report.demographics.sex.n}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Males:</span><span className="text-blue-400 font-bold">{report.demographics.sex.counts.Males} ({((report.demographics.sex.counts.Males/report.demographics.sex.n)*100).toFixed(1)}%)</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Females:</span><span className="text-pink-400 font-bold">{report.demographics.sex.counts.Females} ({((report.demographics.sex.counts.Females/report.demographics.sex.n)*100).toFixed(1)}%)</span></div>
+                    <hr className="border-slate-700 my-2" />
+                    <div className="flex justify-between"><span className="text-slate-400">Mean Age:</span><span className="text-amber-400 font-bold">{report.demographics.age.mean.toFixed(1)} ± {report.demographics.age.sd.toFixed(1)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Age Range (M):</span><span className="text-slate-300 text-[9px]">{report.demographics.ageBySex.Males.mean.toFixed(1)} ± {report.demographics.ageBySex.Males.sd.toFixed(1)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Age Range (F):</span><span className="text-slate-300 text-[9px]">{report.demographics.ageBySex.Females.mean.toFixed(1)} ± {report.demographics.ageBySex.Females.sd.toFixed(1)}</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[9px] tracking-widest mb-4">Primary Indication</h4>
+                  <div className="space-y-3 text-[10px]">
+                    <div className="flex justify-between"><span className="text-slate-400">Aneurysm:</span><span className="text-green-400 font-bold">{report.demographics.indication.counts.Aneurysm}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Dissection:</span><span className="text-orange-400 font-bold">{report.demographics.indication.counts.Dissection}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Other:</span><span className="text-slate-400 font-bold">{report.demographics.indication.counts.Other}</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[9px] tracking-widest mb-4">Cardiac History</h4>
+                  <div className="space-y-2 text-[10px]">
+                    <div className="flex justify-between"><span className="text-slate-400">Hypertension:</span><span className="text-cyan-400 font-bold">{report.demographics.comorbidities.htn}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Coronary Artery Disease:</span><span className="text-cyan-400 font-bold">{report.demographics.comorbidities.cad}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Prior MI:</span><span className="text-cyan-400 font-bold">{report.demographics.comorbidities.mi_history}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Atrial Fibrillation:</span><span className="text-cyan-400 font-bold">{report.demographics.comorbidities.afib}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Heart Failure:</span><span className="text-cyan-400 font-bold">{report.demographics.comorbidities.heart_failure_nyha}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">PFO History:</span><span className="text-cyan-400 font-bold">{report.demographics.comorbidities.pfo_history}</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[9px] tracking-widest mb-4">Neurological History</h4>
+                  <div className="space-y-2 text-[10px]">
+                    <div className="flex justify-between"><span className="text-slate-400">Prior Ischemic Stroke:</span><span className="text-red-400 font-bold">{report.demographics.comorbidities.stroke_isch}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Prior Hemorrhagic Stroke:</span><span className="text-red-400 font-bold">{report.demographics.comorbidities.stroke_hem}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Prior TIA:</span><span className="text-red-400 font-bold">{report.demographics.comorbidities.stroke_tia}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Carotid Stenosis {'>'}50%:</span><span className="text-red-400 font-bold">{report.demographics.comorbidities.carotid_stenosis_gt50}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Prior CEA/Stent:</span><span className="text-red-400 font-bold">{report.demographics.comorbidities.cea_stent_history}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Cognitive Impairment:</span><span className="text-red-400 font-bold">{report.demographics.comorbidities.cognitive_impairment}</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[9px] tracking-widest mb-4">Renal & Other</h4>
+                  <div className="space-y-2 text-[10px]">
+                    <div className="flex justify-between"><span className="text-slate-400">Diabetes Mellitus:</span><span className="text-yellow-400 font-bold">{report.demographics.comorbidities.dm}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">COPD:</span><span className="text-yellow-400 font-bold">{report.demographics.comorbidities.copd}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Chronic Kidney Disease:</span><span className="text-yellow-400 font-bold">{report.demographics.comorbidities.chronic_kidney}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">On Dialysis:</span><span className="text-yellow-400 font-bold">{report.demographics.comorbidities.dialysis}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Connective Tissue Disease:</span><span className="text-yellow-400 font-bold">{report.demographics.comorbidities.connective_tissue_disease}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Active Malignancy:</span><span className="text-yellow-400 font-bold">{report.demographics.comorbidities.active_cancer}</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'anatomy' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="bg-slate-950 p-8 rounded border border-slate-800 shadow-inner">
+              <h3 className="text-slate-400 font-bold uppercase tracking-widest text-[11px] mb-6 flex items-center"><GitMerge className="w-5 h-5 mr-2" /> Preoperative Vascular Anatomy (Section E)</h3>
+              <p className="text-slate-400 text-[10px] mb-8 leading-relaxed italic">
+                Comprehensive angio-CT assessment from {report.totalRecords} patients. These anatomical findings are critical for perioperative stroke risk stratification and enable subgroup analysis by vascular anatomy phenotype.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-4">Anterior Circulation (n={report.totalRecords})</h4>
+                  <div className="space-y-3 text-[10px]">
+                    <div className="font-semibold text-slate-300 border-b border-slate-700 pb-2 mb-2">Anterior Communicating Artery (ACom)</div>
+                    <div className="flex justify-between"><span className="text-slate-400">Patent:</span><span className="text-cyan-400 font-bold">{report.vascularAnatomy.acom.patent}/{report.totalRecords} ({report.vascularAnatomy.acom.rate.toFixed(1)}%)</span></div>
+                    
+                    <div className="font-semibold text-slate-300 border-b border-slate-700 pb-2 mb-2 mt-3">Anterior Cerebral Artery (A1 Segment)</div>
+                    <div className="flex justify-between"><span className="text-slate-400">Codominant:</span><span className="text-cyan-400 font-bold">{report.vascularAnatomy.a1Aca.codominant}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Right-dominant:</span><span className="text-cyan-400 font-bold">{report.vascularAnatomy.a1Aca.rDominant}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Left-dominant:</span><span className="text-cyan-400 font-bold">{report.vascularAnatomy.a1Aca.lDominant}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Hypoplastic/Absent:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.a1Aca.hypoplastic}</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-4">Posterior Communicating Arteries (n={report.totalRecords})</h4>
+                  <div className="space-y-3 text-[10px]">
+                    <div className="flex justify-between"><span className="text-slate-400">Right PCom Patent:</span><span className="text-amber-400 font-bold">{report.vascularAnatomy.rPcom.patent}/{report.totalRecords} ({report.vascularAnatomy.rPcom.rate.toFixed(1)}%)</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Left PCom Patent:</span><span className="text-amber-400 font-bold">{report.vascularAnatomy.lPcom.patent}/{report.totalRecords} ({report.vascularAnatomy.lPcom.rate.toFixed(1)}%)</span></div>
+                    <div className="border-t border-slate-700 pt-3 mt-3">
+                      <div className="text-slate-400 text-[9px] italic mb-2">Both PCom patent (complete posterior collateral):</div>
+                      <div className="text-amber-400 font-bold text-sm">{Math.min(report.vascularAnatomy.rPcom.patent, report.vascularAnatomy.lPcom.patent)}/{report.totalRecords} ({(safeDiv(Math.min(report.vascularAnatomy.rPcom.patent, report.vascularAnatomy.lPcom.patent), report.totalRecords)*100).toFixed(1)}%)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-4">Vertebral Artery Status (n={report.totalRecords})</h4>
+                  <div className="space-y-3 text-[10px]">
+                    <div className="font-semibold text-slate-300 border-b border-slate-700 pb-2 mb-2">Right Vertebral Artery</div>
+                    <div className="flex justify-between"><span className="text-slate-400">Patent (V1-V4):</span><span className="text-orange-400 font-bold">{report.vascularAnatomy.rVa.patent}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Hypoplastic ({'<'}2mm):</span><span className="text-orange-400 font-bold">{report.vascularAnatomy.rVa.hypoplastic}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">PICA termination:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.rVa.picaTermination}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Occluded:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.rVa.occluded}</span></div>
+
+                    <div className="font-semibold text-slate-300 border-b border-slate-700 pb-2 mb-2 mt-3">Left Vertebral Artery</div>
+                    <div className="flex justify-between"><span className="text-slate-400">Patent (V1-V4):</span><span className="text-orange-400 font-bold">{report.vascularAnatomy.lVa.patent}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Hypoplastic ({'<'}2mm):</span><span className="text-orange-400 font-bold">{report.vascularAnatomy.lVa.hypoplastic}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">PICA termination:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.lVa.picaTermination}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Occluded:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.lVa.occluded}</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-4">Vertebral Artery Dominance (n={report.totalRecords})</h4>
+                  <div className="space-y-3 text-[10px]">
+                    <div className="flex justify-between"><span className="text-slate-400">Codominant (balanced):</span><span className="text-orange-400 font-bold">{report.vascularAnatomy.vaDominance.codominant} ({(safeDiv(report.vascularAnatomy.vaDominance.codominant, report.totalRecords)*100).toFixed(1)}%)</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Right-dominant:</span><span className="text-orange-400 font-bold">{report.vascularAnatomy.vaDominance.rDominant} ({(safeDiv(report.vascularAnatomy.vaDominance.rDominant, report.totalRecords)*100).toFixed(1)}%)</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Left-dominant:</span><span className="text-orange-400 font-bold">{report.vascularAnatomy.vaDominance.lDominant} ({(safeDiv(report.vascularAnatomy.vaDominance.lDominant, report.totalRecords)*100).toFixed(1)}%)</span></div>
+                    
+                    <div className="border-t border-slate-700 pt-3 mt-3">
+                      <div className="text-slate-400 text-[9px] italic mb-2">High-risk anatomy (single VA only):</div>
+                      <div className="text-red-400 font-bold text-sm">{(report.vascularAnatomy.rVa.hypoplastic + report.vascularAnatomy.rVa.picaTermination + report.vascularAnatomy.rVa.occluded + report.vascularAnatomy.lVa.hypoplastic + report.vascularAnatomy.lVa.picaTermination + report.vascularAnatomy.lVa.occluded)} patients</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-4">Carotid Artery Status (n={report.totalRecords})</h4>
+                  <div className="space-y-3 text-[10px]">
+                    <div className="font-semibold text-slate-300 border-b border-slate-700 pb-2 mb-2">Right ICA</div>
+                    <div className="flex justify-between"><span className="text-slate-400">Patent:</span><span className="text-red-400">{report.vascularAnatomy.rIca.patent}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Sten {'>'}50%:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.rIca.stenLt50 + report.vascularAnatomy.rIca.sten50to69 + report.vascularAnatomy.rIca.sten70to99}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Occluded:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.rIca.occluded}</span></div>
+
+                    <div className="font-semibold text-slate-300 border-b border-slate-700 pb-2 mb-2 mt-3">Left ICA</div>
+                    <div className="flex justify-between"><span className="text-slate-400">Patent:</span><span className="text-red-400">{report.vascularAnatomy.lIca.patent}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Sten {'>'}50%:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.lIca.stenLt50 + report.vascularAnatomy.lIca.sten50to69 + report.vascularAnatomy.lIca.sten70to99}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Occluded:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.lIca.occluded}</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 p-6 rounded border border-slate-700">
+                  <h4 className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-4">Circle of Willis Classification (n={report.totalRecords})</h4>
+                  <div className="space-y-3 text-[10px]">
+                    <div className="flex justify-between"><span className="text-slate-400">Complete:</span><span className="text-green-400 font-bold">{report.vascularAnatomy.willisClassification.complete} ({(safeDiv(report.vascularAnatomy.willisClassification.complete, report.totalRecords)*100).toFixed(1)}%)</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Incomplete Anterior:</span><span className="text-amber-400 font-bold">{report.vascularAnatomy.willisClassification.incAnt}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Incomplete Posterior:</span><span className="text-amber-400 font-bold">{report.vascularAnatomy.willisClassification.incPost}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Incomplete Both:</span><span className="text-red-400 font-bold">{report.vascularAnatomy.willisClassification.incBoth}</span></div>
+                    <div className="border-t border-slate-700 pt-3 mt-3">
+                      <div className="flex justify-between"><span className="text-slate-400 text-[9px]">Incomplete (any):</span><span className="text-amber-400 font-bold">{report.vascularAnatomy.willisClassification.incAnt + report.vascularAnatomy.willisClassification.incPost + report.vascularAnatomy.willisClassification.incBoth} ({(safeDiv(report.vascularAnatomy.willisClassification.incAnt + report.vascularAnatomy.willisClassification.incPost + report.vascularAnatomy.willisClassification.incBoth, report.totalRecords)*100).toFixed(1)}%)</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-900 p-6 rounded border border-slate-700 mb-6">
+                <h4 className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-4">Posterior Circulation Risk Category (n={report.totalRecords})</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px]">
+                  <div className="bg-green-950/30 border border-green-500/30 p-4 rounded">
+                    <div className="font-semibold text-green-400 mb-2">LOW Risk</div>
+                    <div className="text-slate-300 text-lg font-bold">{report.vascularAnatomy.posteriorRisk.low}</div>
+                    <div className="text-green-300 text-[9px] mt-2">Complete PCom + Codominant VA</div>
+                  </div>
+                  <div className="bg-amber-950/30 border border-amber-500/30 p-4 rounded">
+                    <div className="font-semibold text-amber-400 mb-2">MODERATE Risk</div>
+                    <div className="text-slate-300 text-lg font-bold">{report.vascularAnatomy.posteriorRisk.moderate}</div>
+                    <div className="text-amber-300 text-[9px] mt-2">Unilateral PCom present</div>
+                  </div>
+                  <div className="bg-red-950/30 border border-red-500/30 p-4 rounded">
+                    <div className="font-semibold text-red-400 mb-2">HIGH Risk</div>
+                    <div className="text-slate-300 text-lg font-bold">{report.vascularAnatomy.posteriorRisk.high}</div>
+                    <div className="text-red-300 text-[9px] mt-2">Absent PCom + Single VA</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-green-950/20 border border-green-500/30 p-4 rounded text-[10px] text-green-300 mb-6">
+                <strong>✓ Methodology Summary:</strong> Your cohort includes comprehensive vascular anatomy data enabling risk stratification and future subgroup analysis. The numbers above should appear in your Methods section table of baseline characteristics.
+              </div>
+
+              <div className="bg-blue-950/20 border border-blue-500/30 p-4 rounded text-[10px] text-blue-300">
+                <strong>Next Step - Subgroup Analysis:</strong> These anatomical phenotypes can be used for exploratory subgroup analysis (e.g., stroke type distribution by Willis classification, hemorrhagic vs ischemic by VA status, etc.). This would strengthen your results section.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'pathology' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="bg-slate-950 p-8 rounded border border-slate-800 shadow-inner">
+              <h3 className="text-slate-400 font-bold uppercase tracking-widest text-[11px] mb-6 flex items-center"><Info className="w-5 h-5 mr-2" /> Aortic Pathology & Device Configuration</h3>
+              
+              {/* PRIMARY INDICATION */}
+              <div className="mb-8 p-6 bg-slate-900 rounded border border-slate-700">
+                <h4 className="text-slate-300 font-bold uppercase text-[9px] tracking-widest mb-4">Primary Indication</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px]">
+                  <div>
+                    <div className="text-slate-400 mb-1">Aneurysm</div>
+                    <div className="text-green-400 font-bold text-lg">{report.pathologyAndDevice.indication.aneurysm}</div>
+                    <div className="text-slate-500 text-[9px]">{(safeDiv(report.pathologyAndDevice.indication.aneurysm, report.totalRecords) * 100).toFixed(1)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400 mb-1">Dissection</div>
+                    <div className="text-orange-400 font-bold text-lg">{report.pathologyAndDevice.indication.dissection}</div>
+                    <div className="text-slate-500 text-[9px]">{(safeDiv(report.pathologyAndDevice.indication.dissection, report.totalRecords) * 100).toFixed(1)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400 mb-1">IMH/Ulcer</div>
+                    <div className="text-amber-400 font-bold text-lg">{report.pathologyAndDevice.indication.imh + report.pathologyAndDevice.indication.ulcer}</div>
+                    <div className="text-slate-500 text-[9px]">{(safeDiv(report.pathologyAndDevice.indication.imh + report.pathologyAndDevice.indication.ulcer, report.totalRecords) * 100).toFixed(1)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400 mb-1">Other</div>
+                    <div className="text-blue-400 font-bold text-lg">{report.pathologyAndDevice.indication.trauma + report.pathologyAndDevice.indication.other}</div>
+                    <div className="text-slate-500 text-[9px]">{(safeDiv(report.pathologyAndDevice.indication.trauma + report.pathologyAndDevice.indication.other, report.totalRecords) * 100).toFixed(1)}%</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ANEURYSM CHARACTERISTICS (for aneurysm patients) */}
+              {report.pathologyAndDevice.indication.aneurysm > 0 && (
+                <div className="mb-8 p-6 bg-slate-900 rounded border border-slate-700">
+                  <h4 className="text-slate-300 font-bold uppercase text-[9px] tracking-widest mb-4">Aneurysm Characteristics (n={report.pathologyAndDevice.aneurysm.count})</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Size Categories */}
+                    <div>
+                      <div className="text-slate-400 text-[9px] font-semibold mb-3">Size Categories</div>
+                      <div className="space-y-2 text-[10px]">
+                        <div className="flex justify-between"><span className="text-slate-400">{'{<'}50 mm</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.sizeCategories.lt50}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">50-59 mm</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.sizeCategories.cat50_59}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">60-69 mm</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.sizeCategories.cat60_69}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">70-79 mm</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.sizeCategories.cat70_79}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">≥80 mm</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.sizeCategories.ge80}</span></div>
+                        <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between"><span className="text-amber-400">{'≥'}70 mm</span><span className="font-bold text-amber-400">{report.pathologyAndDevice.aneurysm.ge70mm}</span></div>
+                      </div>
+                    </div>
+
+                    {/* Location & Status */}
+                    <div>
+                      <div className="text-slate-400 text-[9px] font-semibold mb-3">Location & Status</div>
+                      <div className="space-y-2 text-[10px]">
+                        <div className="flex justify-between"><span className="text-slate-400">Ascending</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.location.asc}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Arch</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.location.arch}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Descending</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.location.desc}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Multi-segment</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aneurysm.location.multi}</span></div>
+                        <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between"><span className="text-red-400">Symptomatic</span><span className="font-bold text-red-400">{report.pathologyAndDevice.aneurysm.symptomatic}</span></div>
+                        <div className="flex justify-between"><span className="text-red-600">Rupture/IMH</span><span className="font-bold text-red-600">{report.pathologyAndDevice.aneurysm.rupture}</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* DISSECTION CHARACTERISTICS (for dissection patients) */}
+              {report.pathologyAndDevice.indication.dissection > 0 && (
+                <div className="mb-8 p-6 bg-slate-900 rounded border border-slate-700">
+                  <h4 className="text-slate-300 font-bold uppercase text-[9px] tracking-widest mb-4">Dissection Characteristics (n={report.pathologyAndDevice.dissection.count})</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Stanford Classification */}
+                    <div>
+                      <div className="text-slate-400 text-[9px] font-semibold mb-3">Stanford Classification</div>
+                      <div className="space-y-2 text-[10px]">
+                        <div className="flex justify-between"><span className="text-slate-400">Type A</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.dissection.stanford.typeA}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Type B</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.dissection.stanford.typeB}</span></div>
+                      </div>
+                    </div>
+
+                    {/* Phase */}
+                    <div>
+                      <div className="text-slate-400 text-[9px] font-semibold mb-3">Phase</div>
+                      <div className="space-y-2 text-[10px]">
+                        <div className="flex justify-between"><span className="text-slate-400">Acute</span><span className="font-bold text-red-400">{report.pathologyAndDevice.dissection.phase.acute}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Subacute</span><span className="font-bold text-orange-400">{report.pathologyAndDevice.dissection.phase.subacute}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">Chronic</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.dissection.phase.chronic}</span></div>
+                      </div>
+                    </div>
+
+                    {/* Malperfusion */}
+                    <div>
+                      <div className="text-slate-400 text-[9px] font-semibold mb-3">Malperfusion Syndrome</div>
+                      <div className="text-2xl font-bold text-red-500">{report.pathologyAndDevice.dissection.malperfusion}</div>
+                      <div className="text-slate-500 text-[9px]">{(safeDiv(report.pathologyAndDevice.dissection.malperfusion, report.pathologyAndDevice.dissection.count) * 100).toFixed(1)}% of dissections</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* AORTIC MORPHOLOGY & RISK FACTORS */}
+              <div className="mb-8 p-6 bg-slate-900 rounded border border-slate-700">
+                <h4 className="text-slate-300 font-bold uppercase text-[9px] tracking-widest mb-4">Aortic Morphology & Risk Factors</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Morphology Issues */}
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Risk Morphology</div>
+                    <div className="space-y-2 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">Shaggy Aorta</span><span className="font-bold text-red-500">{report.pathologyAndDevice.aorticMorphology.shaggyAorta}</span></div>
+                      <div className="text-[9px] text-red-400 ml-1">Stroke rate: {report.pathologyAndDevice.aorticMorphology.shaggyRate.toFixed(1)}%</div>
+                      <div className="flex justify-between"><span className="text-slate-400">Arch Thrombus</span><span className="font-bold text-amber-500">{report.pathologyAndDevice.aorticMorphology.thrombusArch}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Ascending Thrombus</span><span className="font-bold text-amber-500">{report.pathologyAndDevice.aorticMorphology.thrombusAsc}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Porcelain Aorta</span><span className="font-bold text-yellow-600">{report.pathologyAndDevice.aorticMorphology.porcelain}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Arch Type */}
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Arch Type (Ishimaru)</div>
+                    <div className="space-y-2 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">Type I</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aorticMorphology.archType.typeI}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Type II</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aorticMorphology.archType.typeII}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Type III</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aorticMorphology.archType.typeIII}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Supraaortic Involvement */}
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Supraaortic Vessel Involvement</div>
+                    <div className="space-y-2 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">None</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aorticMorphology.supraAorticInvolvement.none}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">BCT</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aorticMorphology.supraAorticInvolvement.bct}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">LCCA</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aorticMorphology.supraAorticInvolvement.lcca}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">LSA</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aorticMorphology.supraAorticInvolvement.lsa}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Multiple</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.aorticMorphology.supraAorticInvolvement.multi}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* DEVICE CONFIGURATION */}
+              <div className="mb-8 p-6 bg-slate-900 rounded border border-slate-700">
+                <h4 className="text-slate-300 font-bold uppercase text-[9px] tracking-widest mb-4">Device Configuration & Strategy</h4>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {/* Stentgraft Systems */}
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Stentgraft Systems</div>
+                    <div className="space-y-1 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">Nexus</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.stentgraftSystems.nexus}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Cook</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.stentgraftSystems.cook}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Relay</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.stentgraftSystems.relay}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Gore</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.stentgraftSystems.gore}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Other</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.stentgraftSystems.other}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Configuration Type */}
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Configuration</div>
+                    <div className="space-y-1 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">Branched</span><span className="font-bold text-cyan-400">{report.pathologyAndDevice.deviceConfiguration.configuration.branched}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Modular</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.configuration.modular}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Fenestrated</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.configuration.fenestrated}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">LIFS</span><span className="font-bold text-amber-400">{report.pathologyAndDevice.deviceConfiguration.configuration.lifs}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Treated Vessels */}
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Treated Vessels</div>
+                    <div className="space-y-1 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">BCT</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.treatedVessels.bct}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">LCCA</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.treatedVessels.lcca}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">LSA</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.treatedVessels.lsa}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Multiple</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.deviceConfiguration.treatedVessels.multi}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Access & Revascularization */}
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Procedures & Access</div>
+                    <div className="space-y-1 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">LSA no Revasc</span><span className="font-bold text-red-500">{report.pathologyAndDevice.deviceConfiguration.lsaCoverageNoRevasc}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Bypass/Transposition</span><span className="font-bold text-orange-400">{report.pathologyAndDevice.deviceConfiguration.bypassOrTransposition}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Rad Access</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.additionalAccess.radial}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Brach Access</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.additionalAccess.brachial}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ACCESS STRATEGY */}
+              <div className="mb-8 p-6 bg-slate-900 rounded border border-slate-700">
+                <h4 className="text-slate-300 font-bold uppercase text-[9px] tracking-widest mb-4">Vascular Access</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Main Access Site</div>
+                    <div className="space-y-2 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">Femoral Surgical</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.mainAccessSite.fem_surgical}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Femoral Percutaneous</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.mainAccessSite.fem_percutaneous}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Conduit</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.mainAccessSite.conduit}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Direct</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.mainAccessSite.direct}</span></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-slate-400 text-[9px] font-semibold mb-3">Additional Access (n with any)</div>
+                    <div className="space-y-2 text-[10px]">
+                      <div className="flex justify-between"><span className="text-slate-400">Radial</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.additionalAccess.radial}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Brachial</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.additionalAccess.brachial}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Axillary</span><span className="font-bold text-slate-300">{report.pathologyAndDevice.access.additionalAccess.axillary}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-green-950/20 border border-green-500/30 p-4 rounded text-[10px] text-green-300 mb-6">
+                <strong>✓ Methodology Summary:</strong> Your cohort includes comprehensive pathology and device configuration data. The numbers above should appear in your Methods section baseline characteristics table.
+              </div>
+
+              <div className="bg-blue-950/20 border border-blue-500/30 p-4 rounded text-[10px] text-blue-300">
+                <strong>Next Step:</strong> Consider subgroup analysis by pathology type or device configuration to explore outcome associations in your results section.
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'sub' && (

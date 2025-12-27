@@ -495,25 +495,31 @@ export const PhenotypeChart: React.FC<{ breakdown: any }> = ({ breakdown }) => {
 
 export const ForestPlot: React.FC<{ data: PredictorResult[] }> = ({ data }) => {
   if (!data || data.length === 0) return null;
-  const width = 560; const height = 300; const margin = { top: 30, right: 100, bottom: 60, left: 110 }; const chartWidth = width - margin.left - margin.right; const maxOR = 5.0; const scaleX = (val: number) => { const clamped = Math.max(0, Math.min(val, maxOR)); return (clamped / maxOR) * chartWidth; };
+  const width = 680; const height = 320 + (Math.max(0, data.length - 3) * 38); const margin = { top: 30, right: 120, bottom: 60, left: 140 }; const chartWidth = width - margin.left - margin.right; const maxOR = 5.0; const scaleX = (val: number) => { const clamped = Math.max(0, Math.min(val, maxOR)); return (clamped / maxOR) * chartWidth; };
   return (
     <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
        <text x={margin.left + chartWidth/2} y={height - 10} textAnchor="middle" className="text-xs fill-slate-400 font-bold">Odds Ratio (with 95% CI)</text>
        <line x1={margin.left + scaleX(1)} y1={margin.top} x2={margin.left + scaleX(1)} y2={height - margin.bottom - 20} stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 4" />
        <line x1={margin.left} y1={height - margin.bottom - 20} x2={width - margin.right} y2={height - margin.bottom - 20} stroke="#334155" />
        <text x={margin.left + scaleX(1)} y={height - margin.bottom - 5} textAnchor="middle" className="text-[9px] fill-slate-500">OR=1</text>
-       <g>
-         <rect x={10} y={20} width={130} height={50} fill="rgba(15, 23, 42, 0.95)" stroke="#06b6d4" strokeWidth="1" rx="3" />
-         <line x1={15} x2={30} y1={32} y2={32} stroke="#f87171" strokeWidth="1.5" />
-         <circle cx={22.5} cy={32} r="4" fill="#f87171" />
-         <text x={40} y={36} className="text-[9px] fill-cyan-300 font-semibold">Risk Factor</text>
-         <line x1={15} x2={30} y1={52} y2={52} stroke="#22d3ee" strokeWidth="1.5" />
-         <circle cx={22.5} cy={52} r="4" fill="#22d3ee" />
-         <text x={40} y={56} className="text-[9px] fill-cyan-300 font-semibold">Protective</text>
-       </g>
        {data.map((pred, i) => {
-          const y = margin.top + (i * 40) + 20; const xVal = margin.left + scaleX(pred.oddsRatio || 0); const xLow = margin.left + scaleX(pred.orCiLow || 0); const xHigh = margin.left + scaleX(pred.orCiHigh || 0); const color = (pred.pValue || 1) < 0.05 ? ((pred.oddsRatio || 1) > 1 ? '#f87171' : '#22d3ee') : '#64748b';
-          return ( <g key={i}><text x={margin.left - 10} y={y + 4} textAnchor="end" className="text-xs fill-slate-300 font-medium">{pred.variable}</text><line x1={xLow} y1={y} x2={xHigh} y2={y} stroke={color} strokeWidth="1.5" /><circle cx={xVal} cy={y} r="4" fill={color} /><text x={Math.min(xHigh + 10, width - 10)} y={y + 4} className="text-[10px] fill-slate-500 font-mono">{(pred.oddsRatio || 0).toFixed(2)}</text></g> );
+          const y = margin.top + (i * 38) + 20; 
+          const xVal = margin.left + scaleX(pred.oddsRatio || 0); 
+          const xLow = margin.left + scaleX(pred.orCiLow || 0); 
+          const xHigh = margin.left + scaleX(pred.orCiHigh || 0); 
+          const color = (pred.pValue || 1) < 0.05 ? ((pred.oddsRatio || 1) > 1 ? '#f87171' : '#22d3ee') : '#64748b';
+          const sigIndicator = pred.significantAtP05 ? '*' : '';
+          const fisherText = pred.useFisher ? 'F' : '';
+          return ( 
+            <g key={i}>
+              <text x={margin.left - 10} y={y + 4} textAnchor="end" className="text-xs fill-slate-300 font-medium">{pred.variable}</text>
+              <line x1={xLow} y1={y} x2={xHigh} y2={y} stroke={color} strokeWidth="1.5" />
+              <circle cx={xVal} cy={y} r="4" fill={color} />
+              <text x={width - margin.right + 10} y={y + 4} className="text-[9px] fill-slate-400">{(pred.oddsRatio || 0).toFixed(2)}{sigIndicator}</text>
+              <text x={width - margin.right + 35} y={y + 4} className="text-[8px] fill-slate-500">n={pred.nPresent + pred.nAbsent}</text>
+              <text x={width - margin.right + 60} y={y + 4} className="text-[8px] fill-amber-500">{fisherText}</text>
+            </g> 
+          );
        })}
     </svg>
   );
@@ -521,22 +527,35 @@ export const ForestPlot: React.FC<{ data: PredictorResult[] }> = ({ data }) => {
 
 export const RiskRateChart: React.FC<{ data: PredictorResult[] }> = ({ data }) => {
   if (!data || data.length === 0) return null;
-  const width = 560; const height = 300; const margin = { top: 30, right: 100, bottom: 70, left: 50 }; const chartWidth = width - margin.left - margin.right; const chartHeight = height - margin.top - margin.bottom; const maxRate = Math.max(...data.map(d => Math.max(d.presentStrokeRate || 0, d.absentStrokeRate || 0)), 10) * 1.1; const yScale = (rate: number) => chartHeight - (rate / maxRate) * chartHeight; const barW = 20; const gap = (chartWidth - (data.length * barW * 2)) / (data.length + 1);
+  const width = 600; const height = 340; const margin = { top: 30, right: 150, bottom: 90, left: 50 }; const chartWidth = width - margin.left - margin.right; const chartHeight = height - margin.top - margin.bottom; const maxRate = Math.max(...data.map(d => Math.max(d.presentStrokeRate || 0, d.absentStrokeRate || 0)), 10) * 1.1; const yScale = (rate: number) => chartHeight - (rate / maxRate) * chartHeight; const barW = 18; const gap = (chartWidth - (data.length * barW * 2)) / (data.length + 1);
+  
+  const getEffectSizeColor = (size: string) => {
+    switch(size) {
+      case 'large': return '#ef4444';
+      case 'moderate': return '#f59e0b';
+      case 'small': return '#10b981';
+      default: return '#64748b';
+    }
+  };
+  
   return (
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-          <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom - 20} stroke="#334155" />
-          <line x1={margin.left} y1={height - margin.bottom - 20} x2={width - margin.right} y2={height - margin.bottom - 20} stroke="#334155" />
+          <line x1={margin.left} y1={margin.top} x2={margin.left} y2={margin.top + chartHeight} stroke="#334155" />
+          <line x1={margin.left} y1={margin.top + chartHeight} x2={width - margin.right} y2={margin.top + chartHeight} stroke="#334155" />
           <text x={margin.left + chartWidth/2} y={height - 10} textAnchor="middle" className="text-xs fill-slate-400 font-bold">Stroke Rate by Predictor Status</text>
-          <g>
-            <rect x={10} y={20} width={130} height={35} fill="rgba(15, 23, 42, 0.95)" stroke="#06b6d4" strokeWidth="1" rx="3" />
-            <rect x={15} y={25} width={12} height={12} fill="#f87171" opacity="0.9" />
-            <text x={32} y={33} className="text-[9px] fill-cyan-300 font-semibold">Factor Present</text>
-            <rect x={15} y={42} width={12} height={12} fill="#334155" />
-            <text x={32} y={50} className="text-[9px] fill-cyan-300 font-semibold">Factor Absent</text>
-          </g>
           {data.map((d, i) => {
               const groupX = margin.left + gap + i * (barW * 2 + gap);
-              return ( <g key={i}><rect x={groupX} y={margin.top + yScale(d.presentStrokeRate || 0)} width={barW} height={chartHeight - yScale(d.presentStrokeRate || 0)} fill="#f87171" opacity="0.9" /><rect x={groupX + barW} y={margin.top + yScale(d.absentStrokeRate || 0)} width={barW} height={chartHeight - yScale(d.absentStrokeRate || 0)} fill="#334155" /><text x={groupX + barW} y={height - margin.bottom + 15} textAnchor="middle" className="text-[9px] fill-slate-400">{d.variable?.split(' ')[0]}</text></g> );
+              const effectColor = getEffectSizeColor(d.effectSize);
+              return ( 
+                <g key={i}>
+                  <rect x={groupX} y={margin.top + yScale(d.presentStrokeRate || 0)} width={barW} height={chartHeight - yScale(d.presentStrokeRate || 0)} fill="#f87171" opacity="0.9" />
+                  <rect x={groupX + barW} y={margin.top + yScale(d.absentStrokeRate || 0)} width={barW} height={chartHeight - yScale(d.absentStrokeRate || 0)} fill="#334155" />
+                  <text x={groupX + barW} y={height - margin.bottom + 25} textAnchor="middle" className="text-[9px] fill-slate-400">{d.variable?.split(' ')[0]}</text>
+                  <text x={width - margin.right + 15} y={margin.top + (i * 28) + 20} className="text-[8px] fill-cyan-300 font-semibold">NNH: {d.nnh}</text>
+                  <circle cx={width - margin.right + 55} cy={margin.top + (i * 28) + 14} r="4" fill={effectColor} opacity="0.8" />
+                  <text x={width - margin.right + 65} y={margin.top + (i * 28) + 20} className="text-[8px] fill-slate-400">{d.effectSize}</text>
+                </g>
+              );
           })}
       </svg>
   );

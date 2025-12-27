@@ -1,19 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { Layers, Database, Activity, PlusCircle, Monitor } from 'lucide-react';
+import { Layers, Database, Activity, PlusCircle, Monitor, LogOut } from 'lucide-react';
 import Wizard from './components/Wizard';
 import DataDisplay from './components/DataDisplay';
 import Analysis from './components/Analysis';
+import Login from './components/Login';
+import AdminPanel from './components/AdminPanel';
 import { CollectionRecord } from './types';
 import { MOCK_DATA } from './constants';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 enum Tab {
   COLLECT = 'collect',
   DATA = 'data',
-  ANALYSIS = 'analysis'
+  ANALYSIS = 'analysis',
+  ADMIN = 'admin'
 }
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>(Tab.COLLECT);
   const [records, setRecords] = useState<CollectionRecord[]>([]);
   const [selectedParameters, setSelectedParameters] = useState<string[]>([]);
@@ -75,21 +80,21 @@ const App: React.FC = () => {
             </div>
             
             <div className="flex space-x-4 items-center">
-               <div className="hidden lg:block text-right mr-4">
-                 <div className="text-[9px] text-slate-500 font-mono tracking-tighter">BUILD: 202505-1.1.9</div>
-                 <div className="text-[10px] text-green-500 font-mono flex items-center justify-end">
-                   <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span> SYSTEM_READY_1.1.9
-                 </div>
-               </div>
-               
-               {records.length === 0 && (
-                 <button 
-                   onClick={loadMockData}
-                   className="flex items-center px-4 py-2 text-xs font-bold text-cyan-400 bg-cyan-950/50 border border-cyan-900/50 rounded hover:bg-cyan-900/50 transition-colors uppercase tracking-wider"
-                 >
-                   <PlusCircle className="w-3 h-3 mr-2" /> Wgraj v1.1.9 Demo Data
-                 </button>
-               )}
+              {/* User Info */}
+              <div className="hidden sm:block text-right">
+                <p className="text-xs font-medium text-slate-300">{user?.username}</p>
+                <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">
+                  {user?.role === 'admin' ? '👑 Admin' : '👤 User'}
+                </p>
+              </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={logout}
+                className="flex items-center px-3 py-2 text-xs font-bold text-red-400 bg-red-950/30 border border-red-900/50 rounded hover:bg-red-950/50 transition-colors"
+              >
+                <LogOut className="w-3 h-3 mr-1.5" /> Logout
+              </button>
             </div>
           </div>
         </div>
@@ -136,7 +141,33 @@ const App: React.FC = () => {
                <Activity className="w-4 h-4 mr-2" />
                3. Analityka (v1.1.9)
              </button>
+
+             {user?.role === 'admin' && (
+               <button
+                 onClick={() => setActiveTab(Tab.ADMIN)}
+                 className={`${
+                   activeTab === Tab.ADMIN
+                     ? 'border-amber-500 text-amber-400 bg-slate-800/50'
+                     : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                 } whitespace-nowrap py-4 px-6 border-b-2 font-medium text-xs flex items-center transition-all uppercase tracking-widest`}
+               >
+                 <Database className="w-4 h-4 mr-2" />
+                 👑 Admin Panel
+               </button>
+             )}
            </nav>
+           
+           {/* Demo Data Button */}
+           {records.length === 0 && (
+             <div className="absolute right-6 top-4">
+               <button 
+                 onClick={loadMockData}
+                 className="flex items-center px-4 py-2 text-xs font-bold text-cyan-400 bg-cyan-950/50 border border-cyan-900/50 rounded hover:bg-cyan-900/50 transition-colors uppercase tracking-wider"
+               >
+                 <PlusCircle className="w-3 h-3 mr-2" /> Wgraj v1.1.9 Demo Data
+               </button>
+             </div>
+           )}
          </div>
       </div>
 
@@ -163,6 +194,10 @@ const App: React.FC = () => {
               selectedParameters={selectedParameters} 
             />
           )}
+
+          {activeTab === Tab.ADMIN && user?.role === 'admin' && (
+            <AdminPanel />
+          )}
         </div>
       </main>
 
@@ -182,6 +217,16 @@ const App: React.FC = () => {
       )}
     </div>
   );
+};
+
+const App: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  return <AppContent />;
 };
 
 export default App;
