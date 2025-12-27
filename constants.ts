@@ -467,6 +467,14 @@ const generateMockData = () => {
   const records = [];
   const startYear = 2024;
   
+  // Indication and disease arrays
+  const indications = ['tetniak', 'rozwarstwienie'];
+  const ethnicities = ['kaukaskie', 'afrykanskie', 'azjatyckie'];
+  const smokingStatus = ['nigdy', 'byly', 'aktualny'];
+  const strokeAreas = ['mca', 'aca', 'pca', 'vb'];
+  const stentgrafts = ['nexus', 'relay', 'cook'];
+  const configs = ['branched', 'modular'];
+  
   for (let i = 1; i <= 50; i++) {
     const isFemale = Math.random() > 0.5;
     const age = 62 + Math.floor(Math.random() * 20);
@@ -482,43 +490,120 @@ const generateMockData = () => {
     if (urgency !== 'elective') strokeProb += 0.12;
 
     const hasStroke = Math.random() < strokeProb ? 'tak' : 'nie';
+    // Always assign a stroke type to stroke patients
+    const strokeTypeRand = Math.random();
+    const strokeType = strokeTypeRand < 0.70 ? 'isch' : strokeTypeRand < 0.85 ? 'hem' : strokeTypeRand < 0.95 ? 'mix' : 'unk';
     const contrastVol = 90 + Math.floor(Math.random() * 140);
     const baselineCreat = 70 + Math.floor(Math.random() * 60);
     const hasAki = (contrastVol > 180 || baselineCreat > 110) && Math.random() > 0.7 ? 'tak' : 'nie';
     const isDead = (hasStroke === 'tak' && Math.random() > 0.8) || (Math.random() < 0.03) ? 'tak' : 'nie';
 
     const data: Record<string, any> = {
+      // Section A - Administrative
       study_number: `SA-${1000 + i}`,
       center_code: 'PL-01',
       inclusion_date: `2024-02-${String(1 + Math.floor(Math.random() * 25)).padStart(2, '0')}`,
       collector_initials: 'JK',
       consent_obtained: 'tak',
+      consent_date: `2024-02-${String(1 + Math.floor(Math.random() * 25)).padStart(2, '0')}`,
+      
+      // Section B - Demographics
+      dob: `${1960 + age}-${String(1 + Math.floor(Math.random() * 12)).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')}`,
       age,
       sex: isFemale ? 'k' : 'm',
-      height: isFemale ? 165 : 180,
-      weight: isFemale ? 65 : 85,
+      height: isFemale ? 160 + Math.floor(Math.random() * 10) : 175 + Math.floor(Math.random() * 10),
+      weight: isFemale ? 60 + Math.floor(Math.random() * 20) : 80 + Math.floor(Math.random() * 25),
+      bmi: isFemale ? 24 + Math.random() * 4 : 26 + Math.random() * 3,
+      ethnicity: ethnicities[Math.floor(Math.random() * ethnicities.length)],
+      smoking_status: smokingStatus[Math.floor(Math.random() * smokingStatus.length)],
+      
+      // Section C - Comorbidities
       htn: 'tak',
       cad: Math.random() > 0.6 ? 'tak' : 'nie',
-      baseline_creat: baselineCreat,
+      mi_history: Math.random() > 0.8 ? 'tak' : 'nie',
+      heart_failure_nyha: Math.random() > 0.7 ? '0' : Math.random() > 0.5 ? '1' : '2',
+      afib: Math.random() > 0.75 ? 'tak' : 'nie',
+      prev_cardio_sx: Math.random() > 0.85 ? 'tak' : 'nie',
+      pfo_history: Math.random() > 0.85 ? 'tak' : 'nie',
+      other_shunt: Math.random() > 0.9 ? 'tak' : 'nie',
+      pad: Math.random() > 0.8 ? 'tak' : 'nie',
+      stroke_isch: Math.random() > 0.7 ? 'tak' : 'nie',
+      stroke_hem: Math.random() > 0.9 ? 'tak' : 'nie',
+      stroke_tia: Math.random() > 0.8 ? 'tak' : 'nie',
+      carotid_stenosis_gt50: Math.random() > 0.85 ? 'tak' : 'nie',
+      cea_stent_history: Math.random() > 0.9 ? 'tak' : 'nie',
+      cognitive_impairment: Math.random() > 0.88 ? 'tak' : 'nie',
+      stroke_count: Math.random() > 0.7 ? Math.floor(Math.random() * 3) + 1 : 0,
+      last_stroke_date: Math.random() > 0.7 ? `2023-${String(1 + Math.floor(Math.random() * 12)).padStart(2, '0')}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')}` : '',
+      time_from_stroke_months: Math.random() > 0.7 ? Math.floor(Math.random() * 24) : 0,
+      stroke_area: Math.random() > 0.7 ? strokeAreas[Math.floor(Math.random() * strokeAreas.length)] : '',
+      permanent_neuro_deficit: Math.random() > 0.7 ? 'tak' : Math.random() > 0.5 ? 'nie' : 'nieznane',
+      pre_proc_mrs: Math.floor(Math.random() * 5),
+      dm: Math.random() > 0.7 ? 'tak' : 'nie',
+      copd: Math.random() > 0.85 ? 'tak' : 'nie',
+      chronic_kidney: Math.random() > 0.8 ? 'tak' : 'nie',
+      dialysis: Math.random() > 0.95 ? 'tak' : 'nie',
+      connective_tissue_disease: Math.random() > 0.9 ? 'tak' : 'nie',
+      active_cancer: Math.random() > 0.9 ? 'tak' : 'nie',
       baseline_egfr: Math.floor(90 - (baselineCreat / 10)),
-      primary_indication: Math.random() > 0.3 ? 'tetniak' : 'rozwarstwienie',
+      baseline_creat: baselineCreat,
+      baseline_hb: 11 + Math.random() * 4,
+      ct_type: Math.random() > 0.95 ? 'marfan' : 'inna',
+      ct_dx_age: Math.random() > 0.95 ? 45 : 0,
+      
+      // Section D - Pathology & Indication
+      primary_indication: indications[Math.floor(Math.random() * indications.length)],
+      indication_specify: Math.random() > 0.7 ? 'pseudotetniak' : '',
+      aortic_diameter_mm: 50 + Math.floor(Math.random() * 40),
+      aortic_diameter_proximal: 45 + Math.floor(Math.random() * 30),
+      aortic_diameter_distal: 40 + Math.floor(Math.random() * 20),
+      aortic_location: Math.random() > 0.5 ? 'thoracic' : 'aaaa',
       shaggy_aorta: hasShaggy,
+      thrombus_aorta: Math.random() > 0.85 ? 'tak' : 'nie',
       willis_classification: hasIncompleteCow ? 'inc_both' : 'full',
+      CoW_specify: hasIncompleteCow ? 'inc_anterior' : '',
+      intracranial_stenosis: Math.random() > 0.8 ? 'tak' : 'nie',
+      
+      // Section E - Procedure Details
       urgency_proc: urgency,
-      stentgraft_system: 'nexus',
-      proc_config: 'branched',
+      access_artery: Math.random() > 0.5 ? 'femoral' : 'axillary',
+      anesthesia_type: Math.random() > 0.7 ? 'local' : 'general',
+      stentgraft_system: stentgrafts[Math.floor(Math.random() * stentgrafts.length)],
+      stent_diameter: 28 + Math.floor(Math.random() * 8),
+      proc_config: configs[Math.floor(Math.random() * configs.length)],
       nirs_used: 'tak',
       epd_used_proc: hasEpd,
       proc_time_total_min: 140 + Math.floor(Math.random() * 80),
+      setup_time_min: 20 + Math.floor(Math.random() * 15),
+      fluoro_time_min: 30 + Math.floor(Math.random() * 45),
       contrast_vol_ml: contrastVol,
+      blood_loss_ml: 50 + Math.floor(Math.random() * 300),
+      fluid_administered_ml: 1000 + Math.floor(Math.random() * 2000),
+      transfusion_needed: Math.random() > 0.95 ? 'tak' : 'nie',
+      transfusion_type: 'prbc',
+      units_transfused: Math.floor(Math.random() * 4),
+      procedural_complications: Math.random() > 0.9 ? 'tak' : 'nie',
+      complication_type: Math.random() > 0.95 ? 'dissection' : '',
+      complication_managed: 'interventional',
+      
+      // Section F - 30-Day Outcomes
       any_stroke_30d: hasStroke,
-      stroke_type_cat: hasStroke === 'tak' ? 'isch' : '',
+      stroke_type_cat: hasStroke === 'tak' ? strokeType : '',
+      stroke_subtype: hasStroke === 'tak' ? (strokeType === 'isch' ? 'territorial' : 'lobar') : '',
+      stroke_hemispheric_location: Math.random() > 0.5 ? 'left' : 'right',
       nihss_at_diagnosis: hasStroke === 'tak' ? 6 + Math.floor(Math.random() * 12) : 0,
+      nihss_at_24h: hasStroke === 'tak' ? 4 + Math.floor(Math.random() * 10) : 0,
+      nihss_at_30d: hasStroke === 'tak' ? 2 + Math.floor(Math.random() * 8) : 0,
+      mrs_at_24h: hasStroke === 'tak' ? 2 + Math.floor(Math.random() * 3) : 0,
       mrs_at_30d: hasStroke === 'tak' ? 2 + Math.floor(Math.random() * 2) : 0,
       aki_akin_ge_2: hasAki,
+      max_creatinine_postproc: baselineCreat + (hasAki === 'tak' ? 20 + Math.random() * 40 : Math.random() * 10),
       bleeding_barc_ge_3: Math.random() > 0.9 ? 'tak' : 'nie',
+      access_complication: Math.random() > 0.92 ? 'tak' : 'nie',
+      access_complication_type: Math.random() > 0.98 ? 'pseudoaneurysm' : '',
       death_any_30d: isDead,
-      death_days_from_proc_final: isDead === 'tak' ? 3 + Math.floor(Math.random() * 15) : 30
+      death_days_from_proc_final: isDead === 'tak' ? 3 + Math.floor(Math.random() * 15) : 30,
+      death_attributed_to: isDead === 'tak' ? Math.random() > 0.5 ? 'stroke' : 'other' : ''
     };
 
     records.push({ id: crypto.randomUUID(), timestamp: new Date().toISOString(), data });

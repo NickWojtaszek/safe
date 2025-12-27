@@ -15,7 +15,7 @@ import {
   MultiLineKmChart, TimeByDeviceChart, ComplicationMatrix, 
   TimeVsBleedingChart, ScatterPlot, DonutChart, 
   BurdenMatrix, BurdenRanking, NihssJitterChart, 
-  InteractionChart, PhenotypeChart, ForestPlot, RiskRateChart, ComorbidityBarChart, SexByIndicationChart, IndicationSexAgeChart 
+  InteractionChart, PhenotypeChart, ForestPlot, RiskRateChart, ComorbidityBarChart, SexByIndicationChart, IndicationSexAgeChart, StrokeTypeDistribution, StrokeSeverityCard, ProtectiveEfficacyCard, AnatomicalRiskCard, NihssVsAnatomyChart 
 } from './AnalysisCharts';
 import { 
   BarChart2, Calculator, Activity, 
@@ -381,26 +381,94 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
 
         {activeTab === 'neuro' && (
            <div className="space-y-8 animate-fade-in">
+             {/* Stroke Type & Severity */}
              <div className="grid grid-cols-2 gap-6">
-                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-4">Stroke Type Distribution</h3>
+                   <div className="flex justify-center">
+                     <StrokeTypeDistribution strokeTypes={report.neuro.strokeTypesBySex} />
+                   </div>
+                </div>
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-4">Stroke Severity (NIHSS)</h3>
+                   <StrokeSeverityCard meanNihss={report.neuro.avgNihss} maxNihss={report.neuro.maxNihss} />
+                </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 1. Stroke Type Distribution</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Grouped bar chart comparing stroke type distribution between males and females. Blue bars represent males, pink bars represent females. Shows the prevalence of ischemic vs hemorrhagic strokes separated by gender, with absolute counts displayed on top of each bar.</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 2. Stroke Severity (NIHSS)</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed"><strong>Mean Score:</strong> Average National Institutes of Health Stroke Scale (0-42) across all stroke patients in the cohort. <strong>Max Recorded:</strong> The highest NIHSS score observed. Higher scores indicate more severe neurological impairment. NIHSS is the standard scale for assessing acute stroke severity.</p>
+                </div>
+             </div>
+
+             {/* Burden Matrix & Ranking */}
+             <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-4">Neuro Burden Matrix</h3>
                    <div className="flex justify-center"><BurdenMatrix data={report?.neuro?.burdenMatrix || []} /></div>
                 </div>
-                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-4">Composite Ranking</h3>
                    <BurdenRanking data={report?.neuro?.burdenMatrix || []} dataAll={report?.neuro?.burdenMatrixAll || []} />
                 </div>
              </div>
-             <div className="grid grid-cols-2 gap-6">
+             <div className="grid grid-cols-2 gap-6 mb-8">
                 <div className="bg-slate-900 p-4 rounded border border-slate-800">
-                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 1. Neuro Burden Matrix</h3>
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 3. Neuro Burden Matrix</h3>
                    <p className="text-slate-400 text-[11px] leading-relaxed"><strong>Formula:</strong> X-axis shows 30-day stroke event rate (%) within each subgroup. Y-axis shows mean NIHSS at diagnosis for stroke-affected patients only. Bubble size represents total cohort size (n) in each subgroup. Colors denote category: Anatomy (amber), Device (cyan), Patient (purple). <strong>Note:</strong> Analysis limited to stroke cohort in neuro tab. <strong>Interpretation:</strong> Upper-right quadrant indicates groups with high stroke frequency and severe neurological outcomes.</p>
                 </div>
                 <div className="bg-slate-900 p-4 rounded border border-slate-800">
-                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 2. Composite Ranking</h3>
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 4. Composite Ranking</h3>
                    <p className="text-slate-400 text-[11px] leading-relaxed"><strong>Visualization:</strong> Stacked bar chart showing patient composition per subgroup. <strong>Light bar:</strong> Total cohort size for that subgroup. <strong>Dark bar overlay:</strong> 30-day stroke event rate (%) within that subgroup. <strong>Labels:</strong> Display absolute patient count (n) and stroke percentage. <strong>Interpretation:</strong> Shows both the size of each population and their stroke risk - larger groups with high stroke rates represent highest overall burden.</p>
                 </div>
              </div>
+
+             {/* EPD & CoW Efficacy/Risk Cards */}
+             <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Protective Efficacy (EPD)</h3>
+                      <span className="text-xs text-slate-400 font-mono">P={report.neuro.epdStats?.pValue?.toFixed(2) || '0.00'}</span>
+                   </div>
+                   <ProtectiveEfficacyCard 
+                     withEpd={report.neuro.epdStats?.withEpd || { n: 0, rate: 0 }}
+                     noEpd={report.neuro.epdStats?.noEpd || { n: 0, rate: 0 }}
+                     pValue={report.neuro.epdStats?.pValue || 0}
+                   />
+                </div>
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Anatomical Risk (CoW)</h3>
+                      <span className="text-xs text-slate-400 font-mono">P={report.neuro.cowStats?.pValue?.toFixed(2) || '0.00'}</span>
+                   </div>
+                   <AnatomicalRiskCard 
+                     incompleteCow={report.neuro.cowStats?.incomplete || { n: 0, rate: 0 }}
+                     completeCow={report.neuro.cowStats?.complete || { n: 0, rate: 0 }}
+                     pValue={report.neuro.cowStats?.pValue || 0}
+                   />
+                </div>
+             </div>
+
+             {/* EPD & CoW Descriptions */}
+             <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 5. Protective Efficacy (EPD)</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Comparison of stroke event rates between patients with and without Endovascular Procedures (EPD) protection. Demonstrates the protective effect of EPD by showing the percentage difference in stroke occurrence. Statistical significance (p-value) indicates whether the observed difference is meaningful or due to chance.</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 6. Anatomical Risk (Circle of Willis)</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Comparison of stroke event rates based on Circle of Willis (CoW) completeness, an anatomical factor affecting collateral blood flow. Complete CoW provides better alternative circulation routes, potentially reducing stroke risk. Incomplete CoW may limit compensatory blood flow options, increasing vulnerability to arterial occlusion.</p>
+                </div>
+             </div>
+
+             {/* NIHSS & Interaction Charts */}
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-4">EPD vs No EPD NIHSS</h3>
                    <NihssJitterChart 
                      groupA={report.neuro.nihssBreakdown.epdYes} 
                      groupB={report.neuro.nihssBreakdown.epdNo}
@@ -408,20 +476,48 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
                      labelB="EPD (-)"
                      colorA="#06b6d4"
                      colorB="#ef4444"
+                     pValue={report.neuro.epdStats?.pValue}
                    />
                 </div>
-                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-4">EPD/CoW Interaction</h3>
                    <InteractionChart stats={report.neuro.interactionStats} />
                 </div>
              </div>
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <div className="bg-slate-900 p-4 rounded border border-slate-800">
-                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 3. EPD vs No EPD NIHSS</h3>
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 7. EPD vs No EPD NIHSS</h3>
                    <p className="text-slate-400 text-[11px] leading-relaxed">Analyzes NIHSS severity distribution among stroke patients, stratified by Endovascular Procedures (EPD) status. Each dot represents a stroke patient's NIHSS score at diagnosis, with the mean value highlighted for each group. Shows how EPD treatment relates to neurological outcome severity in stroke cases.</p>
                 </div>
                 <div className="bg-slate-900 p-4 rounded border border-slate-800">
-                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 4. EPD/CoW Interaction</h3>
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 8. EPD/CoW Interaction</h3>
                    <p className="text-slate-400 text-[11px] leading-relaxed">Analyzes the interactive effects between Endovascular Procedures and Circle of Willis (CoW) completeness on patient outcomes. The bubble size represents patient volume, showing how different combinations of EPD status and CoW configuration impact NIHSS scores.</p>
+                </div>
+             </div>
+
+             {/* NIHSS vs Anatomy & Phenotype */}
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-4">Severity vs. Anatomy</h3>
+                   <NihssVsAnatomyChart 
+                     cowComplete={report.neuro.nihssBreakdown.cowComplete}
+                     cowIncomplete={report.neuro.nihssBreakdown.cowIncomplete}
+                     pValue={report.neuro.cowStats?.pValue}
+                   />
+                </div>
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner mb-4">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[11px] mb-4">Stroke Phenotype Distribution</h3>
+                   <PhenotypeChart breakdown={report.neuro.typeBreakdown} />
+                </div>
+             </div>
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 9. Severity vs. Anatomy</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Comparison of stroke severity (NIHSS scores at diagnosis) between anatomical groups. Individual data points show each stroke patient's NIHSS score, with horizontal lines indicating the mean for each group. Complete Circle of Willis (CoW) shown in cyan, incomplete CoW in amber. Shows whether anatomical variation affects stroke severity outcomes.</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-800">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 10. Stroke Phenotype Distribution</h3>
+                   <p className="text-slate-400 text-[11px] leading-relaxed">Distribution of stroke subtypes (ischemic, hemorrhagic, mixed) across different risk groups: With EPD, No EPD, Complete CoW, and Incomplete CoW. Stacked bars show the composition and prevalence of each stroke type within each subgroup, helping identify phenotype patterns across protective and anatomical risk factors.</p>
                 </div>
              </div>
              <AiSection agentKey="neuro" title="Neuro" generator={generateNeuroInterpretation} icon={Brain} />

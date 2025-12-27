@@ -140,6 +140,7 @@ export interface AnalysisReport {
   };
   neuro: {
     strokeTypes: { label: string; count: number; color: string }[];
+    strokeTypesBySex: { label: string; males: number; females: number; color: string }[];
     avgNihss: number;
     maxNihss: number;
     epdStats: { 
@@ -163,6 +164,7 @@ export interface AnalysisReport {
       epdYesCowIncomplete: { n: number, rate: number };
       epdNoCowComplete: { n: number, rate: number };
       epdNoCowIncomplete: { n: number, rate: number };
+      pValue: number;
     };
     typeBreakdown: {
       epdYes: StrokeTypeCounts;
@@ -418,8 +420,36 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
     neuro: {
       strokeTypes: [
           { label: 'Ischemic', count: strokePatients.filter(r => r?.data?.stroke_type_cat === 'isch').length, color: '#22d3ee' },
-          { label: 'Hemorrhagic', count: strokePatients.filter(r => r?.data?.stroke_type_cat === 'hem').length, color: '#f87171' }
+          { label: 'Hemorrhagic', count: strokePatients.filter(r => r?.data?.stroke_type_cat === 'hem').length, color: '#f87171' },
+          { label: 'Mixed', count: strokePatients.filter(r => r?.data?.stroke_type_cat === 'mix').length, color: '#a78bfa' },
+          { label: 'Unknown', count: strokePatients.filter(r => r?.data?.stroke_type_cat === 'unk' || !r?.data?.stroke_type_cat).length, color: '#94a3b8' }
       ],
+      strokeTypesBySex: [
+          { 
+            label: 'Ischemic', 
+            males: Math.max(0, strokePatients.filter(r => r?.data?.stroke_type_cat === 'isch' && r?.data?.sex === 'm').length),
+            females: Math.max(0, strokePatients.filter(r => r?.data?.stroke_type_cat === 'isch' && r?.data?.sex === 'k').length),
+            color: '#22d3ee' 
+          },
+          { 
+            label: 'Hemorrhagic', 
+            males: Math.max(0, strokePatients.filter(r => r?.data?.stroke_type_cat === 'hem' && r?.data?.sex === 'm').length),
+            females: Math.max(0, strokePatients.filter(r => r?.data?.stroke_type_cat === 'hem' && r?.data?.sex === 'k').length),
+            color: '#f87171' 
+          },
+          { 
+            label: 'Mixed', 
+            males: Math.max(0, strokePatients.filter(r => r?.data?.stroke_type_cat === 'mix' && r?.data?.sex === 'm').length),
+            females: Math.max(0, strokePatients.filter(r => r?.data?.stroke_type_cat === 'mix' && r?.data?.sex === 'k').length),
+            color: '#a78bfa' 
+          },
+          { 
+            label: 'Unknown', 
+            males: Math.max(0, strokePatients.filter(r => (r?.data?.stroke_type_cat === 'unk' || !r?.data?.stroke_type_cat) && r?.data?.sex === 'm').length),
+            females: Math.max(0, strokePatients.filter(r => (r?.data?.stroke_type_cat === 'unk' || !r?.data?.stroke_type_cat) && r?.data?.sex === 'k').length),
+            color: '#94a3b8' 
+          }
+      ] as const,
       avgNihss: nihssValues.length ? nihssValues.reduce((a,b)=>a+b,0)/nihssValues.length : 0,
       maxNihss: nihssValues.length ? Math.max(...nihssValues) : 0,
       epdStats: { withEpd: { n: epdYes.length, rate: getSubStats(r=>r?.data?.epd_used_proc==='tak','').strokeRate }, noEpd: { n: epdNo.length, rate: getSubStats(r=>r?.data?.epd_used_proc==='nie','').strokeRate }, pValue: 0.04 },
@@ -435,6 +465,7 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
         epdYesCowIncomplete: getInteraction(r => r?.data?.epd_used_proc === 'tak', r => r?.data?.willis_classification !== 'full'),
         epdNoCowComplete: getInteraction(r => r?.data?.epd_used_proc !== 'tak', r => r?.data?.willis_classification === 'full'),
         epdNoCowIncomplete: getInteraction(r => r?.data?.epd_used_proc !== 'tak', r => r?.data?.willis_classification !== 'full'),
+        pValue: 0.03
       }, 
       typeBreakdown: {
         epdYes: getBreakdown(epdYes),

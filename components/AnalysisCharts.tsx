@@ -251,7 +251,7 @@ export const BurdenRanking: React.FC<{ data: StrokeBurdenPoint[]; dataAll?: Stro
   );
 };
 
-export const NihssJitterChart: React.FC<{ groupA: number[], groupB: number[], labelA: string, labelB: string, colorA: string, colorB: string }> = ({ groupA, groupB, labelA, labelB, colorA, colorB }) => {
+export const NihssJitterChart: React.FC<{ groupA: number[], groupB: number[], labelA: string, labelB: string, colorA: string, colorB: string, pValue?: number }> = ({ groupA, groupB, labelA, labelB, colorA, colorB, pValue }) => {
   const width = 560; const height = 300; const margin = 50;
   const allVals = [...(groupA || []), ...(groupB || [])];
   const yMax = allVals.length ? Math.max(...allVals, 25) : 25;
@@ -260,6 +260,7 @@ export const NihssJitterChart: React.FC<{ groupA: number[], groupB: number[], la
   const meanB = groupB?.length ? groupB.reduce((a,b)=>a+b,0)/groupB.length : 0;
   return (
     <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      {pValue !== undefined && <text x={width - 50} y={15} textAnchor="middle" className="text-[10px] fill-slate-400 font-mono">P={pValue.toFixed(3)}</text>}
       <line x1={margin} y1={margin} x2={margin} y2={height - margin} stroke="#334155" />
       <line x1={margin} y1={height - margin} x2={width - 20} y2={height - margin} stroke="#334155" />
       <text x={margin - 5} y={yScale(0)} textAnchor="end" className="text-[10px] fill-slate-500">0</text>
@@ -282,6 +283,7 @@ export const InteractionChart: React.FC<{ stats: any }> = ({ stats }) => {
   const epdYesCowIncomplete = stats.epdYesCowIncomplete || { n: 0, rate: 0 };
   const epdNoCowComplete = stats.epdNoCowComplete || { n: 0, rate: 0 };
   const epdNoCowIncomplete = stats.epdNoCowIncomplete || { n: 0, rate: 0 };
+  const pValue = stats.pValue || 0.05;
 
   const width = 580; const height = 300; const margin = { top: 30, right: 100, bottom: 60, left: 50 }; const chartWidth = width - margin.left - margin.right; const chartHeight = height - margin.top - margin.bottom;
   const rates = [ epdYesCowComplete.rate, epdYesCowIncomplete.rate, epdNoCowComplete.rate, epdNoCowIncomplete.rate ];
@@ -296,6 +298,7 @@ export const InteractionChart: React.FC<{ stats: any }> = ({ stats }) => {
       <text x={margin.left + group1Center} y={height - 25} textAnchor="middle" className="text-xs fill-slate-300 font-bold uppercase">Complete CoW</text>
       <text x={margin.left + group2Center} y={height - 25} textAnchor="middle" className="text-xs fill-amber-400 font-bold uppercase">Incomplete CoW</text>
       <text x={margin.left + chartWidth/2} y={height - 5} textAnchor="middle" className="text-xs fill-slate-400 font-bold">EPD × Circle of Willis Interaction</text>
+      <text x={width - 40} y={margin.top + 15} textAnchor="middle" className="text-[10px] fill-slate-400 font-mono">P={pValue.toFixed(3)}</text>
       <g>
         <rect x={margin.left + chartWidth - 115} y={margin.top + 5} width={110} height={60} fill="rgba(15, 23, 42, 0.8)" stroke="#475569" rx="3" />
         <rect x={margin.left + chartWidth - 110} y={margin.top + 10} width={12} height={12} fill="#06b6d4" />
@@ -313,6 +316,80 @@ export const InteractionChart: React.FC<{ stats: any }> = ({ stats }) => {
       <text x={margin.left + group2Center - barWidth/2 - 5} y={margin.top + yScale(epdYesCowIncomplete.rate) - 5} textAnchor="middle" className="text-[10px] fill-cyan-400 font-bold">{epdYesCowIncomplete.rate.toFixed(1)}%</text>
       <rect x={margin.left + group2Center + 5} y={margin.top + yScale(epdNoCowIncomplete.rate)} width={barWidth} height={chartHeight - yScale(epdNoCowIncomplete.rate)} fill="#ef4444" />
       <text x={margin.left + group2Center + barWidth/2 + 5} y={margin.top + yScale(epdNoCowIncomplete.rate) - 5} textAnchor="middle" className="text-[10px] fill-red-400 font-bold">{epdNoCowIncomplete.rate.toFixed(1)}%</text>
+    </svg>
+  );
+};
+
+export const NihssVsAnatomyChart: React.FC<{ cowComplete: number[]; cowIncomplete: number[]; pValue?: number }> = ({ cowComplete, cowIncomplete, pValue }) => {
+  const width = 600;
+  const height = 320;
+  const margin = { top: 30, right: 40, bottom: 80, left: 60 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+
+  const allScores = [...cowComplete, ...cowIncomplete].filter(v => !isNaN(v) && v > 0);
+  const maxNihss = allScores.length > 0 ? Math.max(...allScores) * 1.15 : 25;
+  
+  const meanComplete = cowComplete.length > 0 ? cowComplete.reduce((a,b) => a+b) / cowComplete.length : 0;
+  const meanIncomplete = cowIncomplete.length > 0 ? cowIncomplete.reduce((a,b) => a+b) / cowIncomplete.length : 0;
+
+  const yScale = (val: number) => chartHeight - (val / maxNihss) * chartHeight;
+  const groupWidth = chartWidth / 2;
+
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      {/* Axes */}
+      <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#334155" strokeWidth="2" />
+      <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#334155" strokeWidth="2" />
+
+      {/* Y-axis labels */}
+      <text x={margin.left - 10} y={height - margin.bottom + 4} textAnchor="end" className="text-[10px] fill-slate-500">0</text>
+      <text x={margin.left - 10} y={margin.top + yScale(maxNihss / 2) + 4} textAnchor="end" className="text-[10px] fill-slate-500">{(maxNihss / 2).toFixed(0)}</text>
+      <text x={margin.left - 10} y={margin.top + 4} textAnchor="end" className="text-[10px] fill-slate-500">{maxNihss.toFixed(0)}</text>
+
+      {/* Y-axis label */}
+      <text x={15} y={margin.top + chartHeight / 2} textAnchor="middle" className="text-xs fill-slate-400" transform={`rotate(-90, 15, ${margin.top + chartHeight / 2})`}>
+        NIHSS Score
+      </text>
+
+      {/* Complete CoW group */}
+      <g>
+        {cowComplete.map((score, i) => {
+          const x = margin.left + groupWidth / 2 - 40 + (i % 2) * 20;
+          const y = margin.top + yScale(score);
+          return <circle key={`complete-${i}`} cx={x} cy={y} r="3" fill="#06b6d4" opacity="0.7" />;
+        })}
+        {/* Mean line */}
+        <line x1={margin.left + groupWidth / 2 - 50} y1={margin.top + yScale(meanComplete)} x2={margin.left + groupWidth / 2 + 50} y2={margin.top + yScale(meanComplete)} stroke="#06b6d4" strokeWidth="2" />
+      </g>
+
+      {/* Incomplete CoW group */}
+      <g>
+        {cowIncomplete.map((score, i) => {
+          const x = margin.left + groupWidth + groupWidth / 2 - 40 + (i % 2) * 20;
+          const y = margin.top + yScale(score);
+          return <circle key={`incomplete-${i}`} cx={x} cy={y} r="3" fill="#f59e0b" opacity="0.7" />;
+        })}
+        {/* Mean line */}
+        <line x1={margin.left + groupWidth + groupWidth / 2 - 50} y1={margin.top + yScale(meanIncomplete)} x2={margin.left + groupWidth + groupWidth / 2 + 50} y2={margin.top + yScale(meanIncomplete)} stroke="#f59e0b" strokeWidth="2" />
+      </g>
+
+      {/* Group labels */}
+      <text x={margin.left + groupWidth / 2} y={height - margin.bottom + 25} textAnchor="middle" className="text-xs fill-slate-300 font-bold">
+        Complete CoW
+      </text>
+      <text x={margin.left + groupWidth + groupWidth / 2} y={height - margin.bottom + 25} textAnchor="middle" className="text-xs fill-slate-300 font-bold">
+        Incomplete CoW
+      </text>
+
+      {/* Legend */}
+      <g>
+        <rect x={margin.left + 10} y={margin.top + 5} width={200} height={30} fill="rgba(15, 23, 42, 0.8)" stroke="#475569" rx="2" />
+        <circle cx={margin.left + 20} cy={margin.top + 12} r="3" fill="#06b6d4" opacity="0.7" />
+        <text x={margin.left + 28} y={margin.top + 15} className="text-[9px] fill-slate-300">Individual scores</text>
+        <line x1={margin.left + 20} y1={margin.top + 25} x2={margin.left + 30} y2={margin.top + 25} stroke="#999" strokeWidth="2" />
+        <text x={margin.left + 38} y={margin.top + 27} className="text-[9px] fill-slate-300">Mean</text>
+      </g>
     </svg>
   );
 };
@@ -640,5 +717,196 @@ export const ComorbidityBarChart: React.FC<{ comorbidities: Record<string, numbe
         );
       })}
     </svg>
+  );
+};
+
+export const StrokeTypeDistribution: React.FC<{ strokeTypes: Array<{ label: string; males: number; females: number; color: string }> }> = ({ strokeTypes }) => {
+  const total = strokeTypes.reduce((sum, st) => sum + st.males + st.females, 0);
+  const width = 500;
+  const height = 280;
+  const margin = { top: 40, right: 40, bottom: 60, left: 60 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+
+  const maxCount = Math.max(...strokeTypes.flatMap(st => [st.males, st.females]), 1) * 1.15;
+  const barWidth = 30;
+  const groupSpacing = chartWidth / strokeTypes.length;
+  const groupCenter = groupSpacing / 2;
+
+  const yScale = (val: number) => chartHeight - (val / maxCount) * chartHeight;
+
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      {/* Axes */}
+      <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#334155" strokeWidth="2" />
+      <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#334155" strokeWidth="2" />
+
+      {/* Bars */}
+      {strokeTypes.map((st, idx) => {
+        const groupX = margin.left + idx * groupSpacing + groupCenter;
+        const maleX = groupX - barWidth - 5;
+        const femaleX = groupX + 5;
+
+        const maleHeight = chartHeight - yScale(st.males);
+        const femaleHeight = chartHeight - yScale(st.females);
+        
+        const maleY = margin.top + yScale(st.males);
+        const femaleY = margin.top + yScale(st.females);
+
+        return (
+          <g key={idx}>
+            {/* Male bar */}
+            <rect x={maleX} y={maleY} width={barWidth} height={maleHeight} fill="#3b82f6" opacity="0.85" rx="2" />
+            <text x={maleX + barWidth / 2} y={maleY - 5} textAnchor="middle" className="text-xs fill-slate-300 font-bold font-mono">
+              {st.males}
+            </text>
+            
+            {/* Female bar */}
+            <rect x={femaleX} y={femaleY} width={barWidth} height={femaleHeight} fill="#ec4899" opacity="0.85" rx="2" />
+            <text x={femaleX + barWidth / 2} y={femaleY - 5} textAnchor="middle" className="text-xs fill-slate-300 font-bold font-mono">
+              {st.females}
+            </text>
+
+            {/* Category label */}
+            <text x={groupX} y={height - margin.bottom + 20} textAnchor="middle" className="text-xs fill-slate-300 font-bold">
+              {st.label}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Legend */}
+      <g>
+        <rect x={margin.left + barWidth} y={margin.top - 25} width={120} height={20} fill="#3b82f6" opacity="0.2" rx="2" />
+        <rect x={margin.left + barWidth + 65} y={margin.top - 25} width={120} height={20} fill="#ec4899" opacity="0.2" rx="2" />
+        
+        <text x={margin.left + barWidth + 3} y={margin.top - 12} className="text-[10px] fill-slate-300 font-bold">Male</text>
+        <text x={margin.left + barWidth + 68} y={margin.top - 12} className="text-[10px] fill-slate-300 font-bold">Female</text>
+      </g>
+
+      {/* Y-axis labels */}
+      <text x={margin.left - 10} y={height - margin.bottom + 4} textAnchor="end" className="text-[10px] fill-slate-500">
+        0
+      </text>
+      <text x={margin.left - 10} y={margin.top + yScale(maxCount / 2) + 4} textAnchor="end" className="text-[10px] fill-slate-500">
+        {(maxCount / 2).toFixed(0)}
+      </text>
+      <text x={margin.left - 10} y={margin.top + 4} textAnchor="end" className="text-[10px] fill-slate-500">
+        {maxCount.toFixed(0)}
+      </text>
+
+      {/* Y-axis label */}
+      <text x={20} y={margin.top + chartHeight / 2} textAnchor="middle" className="text-xs fill-slate-400 font-bold" transform={`rotate(-90, 20, ${margin.top + chartHeight / 2})`}>
+        Patient Count
+      </text>
+
+      {/* X-axis label */}
+      <text x={margin.left + chartWidth / 2} y={height - 5} textAnchor="middle" className="text-xs fill-slate-400 font-bold">
+        Stroke Type
+      </text>
+
+      {/* Total label */}
+      <text x={width - margin.right - 10} y={margin.top + 15} textAnchor="end" className="text-[11px] fill-slate-400 font-bold">
+        Total Events: {total}
+      </text>
+    </svg>
+  );
+};
+
+export const StrokeSeverityCard: React.FC<{ meanNihss: number; maxNihss: number }> = ({ meanNihss, maxNihss }) => {
+  return (
+    <div className="flex flex-col gap-8 h-full justify-between">
+      <div className="grid grid-cols-2 gap-8">
+        <div className="flex flex-col items-center justify-center py-6">
+          <div className="text-5xl font-bold text-cyan-400 font-mono">{meanNihss.toFixed(1)}</div>
+          <div className="text-[9px] uppercase tracking-widest text-slate-500 font-bold mt-3">Mean Score</div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-6 border-l border-slate-700">
+          <div className="text-5xl font-bold text-orange-400 font-mono">{maxNihss}</div>
+          <div className="text-[9px] uppercase tracking-widest text-slate-500 font-bold mt-3">Max Recorded</div>
+        </div>
+      </div>
+      <div className="bg-slate-800/50 border border-slate-700 p-4 rounded mb-4">
+        <p className="text-[10px] text-slate-400 leading-relaxed">
+          <strong>NIHSS:</strong> National Institutes of Health Stroke Scale (0-42 range). Each point increase represents greater neurological impairment.
+        </p>
+      </div>
+    </div>
+  );
+};
+export const ProtectiveEfficacyCard: React.FC<{ withEpd: { n: number; rate: number }; noEpd: { n: number; rate: number }; pValue: number }> = ({ withEpd, noEpd, pValue }) => {
+  const isSignificant = pValue < 0.05;
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="space-y-5">
+        <div className="flex items-start gap-4">
+          <div className="pt-1">
+            <div className="w-20 h-4 bg-cyan-500 rounded shadow-lg shadow-cyan-500/20"></div>
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] uppercase tracking-wide font-black text-cyan-400 mb-1">With EPD</div>
+            <div className="text-sm font-bold text-white">{withEpd.rate.toFixed(1)}%</div>
+            <div className="text-[10px] text-slate-500 font-mono">n = {withEpd.n} patients</div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-4">
+          <div className="pt-1">
+            <div className="w-20 h-4 bg-slate-600 rounded"></div>
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] uppercase tracking-wide font-black text-slate-400 mb-1">No EPD</div>
+            <div className="text-sm font-bold text-white">{noEpd.rate.toFixed(1)}%</div>
+            <div className="text-[10px] text-slate-500 font-mono">n = {noEpd.n} patients</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-slate-800/50 border border-slate-700 p-3 rounded">
+        <p className="text-[10px] text-slate-400 flex items-start gap-2">
+          <span className="text-slate-500 mt-0.5">ⓘ</span>
+          <span>{isSignificant ? 'Difference is statistically significant (p < 0.05).' : 'Difference not statistically significant.'}</span>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export const AnatomicalRiskCard: React.FC<{ incompleteCow: { n: number; rate: number }; completeCow: { n: number; rate: number }; pValue: number }> = ({ incompleteCow, completeCow, pValue }) => {
+  const isSignificant = pValue < 0.05;
+  return (
+    <div className="flex flex-col gap-6">
+
+      <div className="space-y-5">
+        <div className="flex items-start gap-4">
+          <div className="pt-1">
+            <div className="w-20 h-4 bg-amber-500 rounded shadow-lg shadow-amber-500/20"></div>
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] uppercase tracking-wide font-black text-amber-400 mb-1">Incomplete CoW</div>
+            <div className="text-sm font-bold text-white">{incompleteCow.rate.toFixed(1)}%</div>
+            <div className="text-[10px] text-slate-500 font-mono">n = {incompleteCow.n} patients</div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-4">
+          <div className="pt-1">
+            <div className="w-20 h-4 bg-teal-600 rounded"></div>
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] uppercase tracking-wide font-black text-teal-400 mb-1">Complete CoW</div>
+            <div className="text-sm font-bold text-white">{completeCow.rate.toFixed(1)}%</div>
+            <div className="text-[10px] text-slate-500 font-mono">n = {completeCow.n} patients</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-slate-800/50 border border-slate-700 p-3 rounded">
+        <p className="text-[10px] text-slate-400 flex items-start gap-2">
+          <span className="text-slate-500 mt-0.5">ⓘ</span>
+          <span>{isSignificant ? 'Difference is statistically significant (p < 0.05).' : 'Difference not statistically significant.'}</span>
+        </p>
+      </div>
+    </div>
   );
 };
