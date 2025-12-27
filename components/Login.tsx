@@ -55,11 +55,10 @@ const Login: React.FC = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
+              placeholder="Enter your username"
               disabled={loading}
               className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-50 transition-colors"
             />
-            <p className="text-xs text-slate-500 mt-1">Demo: <code className="text-slate-400 font-mono">admin</code> or <code className="text-slate-400 font-mono">user1</code> or <code className="text-slate-400 font-mono">user2</code></p>
           </div>
 
           {/* Password Field */}
@@ -69,14 +68,10 @@ const Login: React.FC = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="Enter your password"
               disabled={loading}
               className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-50 transition-colors"
             />
-            <p className="text-xs text-slate-500 mt-1">
-              Admin: <code className="text-slate-400 font-mono">SafeArch2024!</code> | 
-              Users: <code className="text-slate-400 font-mono">User123456!</code>
-            </p>
           </div>
 
           {/* Submit Button */}
@@ -93,9 +88,6 @@ const Login: React.FC = () => {
           <div className="pt-4 border-t border-slate-800">
             <p className="text-xs text-slate-400 text-center">
               SAFE-ARCH Protocol v1.1.9 • Production Ready
-            </p>
-            <p className="text-xs text-amber-600/70 text-center mt-2 font-mono">
-              LOCAL DEVELOPMENT MODE
             </p>
           </div>
         </form>
