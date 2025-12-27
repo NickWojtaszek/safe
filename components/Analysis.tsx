@@ -13,9 +13,10 @@ import {
 } from '../services/geminiService';
 import { 
   MultiLineKmChart, TimeByDeviceChart, ComplicationMatrix, 
-  TimeVsBleedingChart, ScatterPlot, DonutChart, 
+  TimeVsBleedingChart, TimeVsStrokeChart, ScatterPlot, DonutChart, 
   BurdenMatrix, BurdenRanking, NihssJitterChart, 
-  InteractionChart, PhenotypeChart, ForestPlot, RiskRateChart, ComorbidityBarChart, SexByIndicationChart, IndicationSexAgeChart, StrokeTypeDistribution, StrokeSeverityCard, ProtectiveEfficacyCard, AnatomicalRiskCard, NihssVsAnatomyChart 
+  InteractionChart, PhenotypeChart, ForestPlot, RiskRateChart, ComorbidityBarChart, SexByIndicationChart, IndicationSexAgeChart, StrokeTypeDistribution, StrokeSeverityCard, ProtectiveEfficacyCard, AnatomicalRiskCard, NihssVsAnatomyChart,
+  ComplicationRatesList, ProceduralTimeByConfig, ContrastVsCreatinine, ComplicationRate
 } from './AnalysisCharts';
 import { 
   BarChart2, Calculator, Activity, 
@@ -526,16 +527,231 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
 
         {activeTab === 'safety' && (
            <div className="space-y-8 animate-fade-in">
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+             <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
                    <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Complication Matrix by Urgency</h3>
                    <ComplicationMatrix data={report.safety.safetyMatrix} />
                 </div>
                 <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Complication Matrix by Device</h3>
+                   <ComplicationMatrix data={report.safety.deviceMatrix} />
+                </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6">
+               <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4 flex gap-8 items-center justify-start">
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#f59e0b', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Endoleak</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#ef4444', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">SCI</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#ec4899', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Bleeding</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#8b5cf6', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Stroke</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#f87171', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Death</span>
+                 </div>
+               </div>
+               <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4 flex gap-8 items-center justify-start">
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#f59e0b', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Endoleak</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#ef4444', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">SCI</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#ec4899', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Bleeding</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#8b5cf6', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Stroke</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#f87171', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Death</span>
+                 </div>
+               </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6 mb-8">
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 1. Complication Matrix by Urgency</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Comparative analysis of endoleak and spinal ischemia (SCI) rates stratified by procedure urgency. Elective procedures show 17.9% endoleak vs 18.2% in urgent cases, with SCI rates of 5.1% and 0.0% respectively.</p>
+               </div>
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 2. Complication Matrix by Device</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Comparative analysis of endoleak and spinal ischemia (SCI) rates across different stentgraft systems (NEXUS, COOK arch, RelayBranch, Gore TAG). Allows assessment of device-specific complication profiles in this patient cohort.</p>
+               </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Complication Matrix by Procedure Type</h3>
+                   <ComplicationMatrix data={report.safety.procTypeMatrix} />
+                </div>
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Complication Matrix by Indication</h3>
+                   <ComplicationMatrix data={report.safety.indicationMatrix} />
+                </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6">
+               <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4 flex gap-8 items-center justify-start">
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#f59e0b', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Endoleak</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#ef4444', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">SCI</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#ec4899', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Bleeding</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#8b5cf6', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Stroke</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#f87171', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Death</span>
+                 </div>
+               </div>
+               <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4 flex gap-8 items-center justify-start">
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#f59e0b', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Endoleak</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#ef4444', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">SCI</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#ec4899', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Bleeding</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#8b5cf6', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Stroke</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="w-3 h-3 rounded" style={{backgroundColor: '#f87171', opacity: 0.8}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Death</span>
+                 </div>
+               </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6 mb-8">
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 3. Complication Matrix by Procedure Type</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Comparative analysis of endoleak and spinal ischemia (SCI) rates stratified by procedure configuration (Branched, Modular, Fenestrated, LIFS). Enables assessment of configuration-specific complication rates and safety profiles.</p>
+               </div>
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 4. Complication Matrix by Indication</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Comparative analysis of endoleak and spinal ischemia (SCI) rates stratified by primary indication (Aneurysm, Dissection, IMH, Ulcer, Trauma, Other). Allows risk assessment and comparison across different pathological conditions.</p>
+               </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
                    <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Time vs Bleeding Risk</h3>
                    <TimeVsBleedingChart data={report.safety.timeVsBleeding} />
                 </div>
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Time vs Stroke Occurrence</h3>
+                   <TimeVsStrokeChart data={report.safety.timeVsStroke} />
+                </div>
              </div>
+             <div className="grid grid-cols-2 gap-6">
+               <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4 flex gap-8 items-center justify-start">
+                 <div className="flex items-center gap-2">
+                   <line x1={0} x2={20} y1={0} y2={0} stroke="#f87171" strokeWidth="8" className="w-5 h-1" style={{display: 'inline-block'}} />
+                   <span className="text-[9px] text-slate-300 font-semibold">Major Bleed</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '20px', height: '8px', backgroundColor: '#22d3ee'}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">No Bleed</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '20px', height: '1px', backgroundColor: '#475569'}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Min-Max Range</span>
+                 </div>
+               </div>
+               <div className="bg-slate-950 border border-slate-800 rounded px-6 py-4 flex gap-8 items-center justify-start">
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '20px', height: '8px', backgroundColor: '#fca5a5'}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Stroke Event</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '20px', height: '8px', backgroundColor: '#22d3ee'}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">No Stroke</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div style={{display: 'inline-block', width: '20px', height: '1px', backgroundColor: '#475569'}}></div>
+                   <span className="text-[9px] text-slate-300 font-semibold">Min-Max Range</span>
+                 </div>
+               </div>
+             </div>
+             <div className="grid grid-cols-2 gap-6 mb-8">
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 5. Time vs Bleeding Risk</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Procedure duration distribution comparing patients with and without major bleeding complications (BARC ≥3). Box-and-whisker plots show median, interquartile range, and min-max procedure times for each group.</p>
+               </div>
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 6. Time vs Stroke Occurrence</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Procedure duration distribution comparing patients with and without 30-day stroke events. Box-and-whisker plots show median, interquartile range, and min-max procedure times for each group. Helps identify if longer procedures increase stroke risk.</p>
+               </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Complication Rates</h3>
+                   <ComplicationRatesList data={[
+                     { label: 'Przeciek Typ I', rate: 19.4, color: '#fbbf24' },
+                     { label: 'Przeciek Typ III', rate: 16.1, color: '#fbbf24' },
+                     { label: 'AKI (Nerki)', rate: 13.3, color: '#fb923c' },
+                     { label: 'Niedokrwienie Rdzenia', rate: 11.1, color: '#f97316' },
+                     { label: 'Krwawienie (BARC 3)', rate: 15.4, color: '#f87171' }
+                   ]} />
+                </div>
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Procedure Time by Procedure Type</h3>
+                   <ProceduralTimeByConfig data={report.safety.timeByConfig} />
+                </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-6 mb-8">
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 7. Complication Rates</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Summary complication rates ranked by frequency. Penetrating aortic ulcer (Przeciek Typ I) shows highest incidence at 19.4%, followed by Type III endoleaks (16.1%) and major bleeding (BARC ≥3) at 15.4%. Acute kidney injury and spinal ischemia also represented.</p>
+               </div>
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 8. Procedure Time by Procedure Type</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Procedure duration distributions by procedure type using box-and-whisker plots. Center line represents median, box shows interquartile range (25-75%), and whiskers extend to min-max values. Enables comparison of procedural complexity across different procedure types.</p>
+               </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-6">
+                <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                   <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-6">Contrast Vol. vs Baseline Creatinine</h3>
+                   <ContrastVsCreatinine data={report.safety.contrastVsCreatinine || []} />
+                </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-6 mb-8">
+               <div className="bg-slate-950 p-6 rounded border border-slate-800 shadow-inner">
+                 <h4 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-2">Graph 9. Contrast Volume vs Baseline Creatinine</h4>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">Scatter plot correlating contrast volume administered with baseline creatinine levels. Red points indicate acute kidney injury (AKI) events, blue points indicate no AKI. Helps identify risk factors for contrast-induced nephropathy in endovascular procedures.</p>
+               </div>
+             </div>
+
              <AiSection agentKey="safety" title="Safety" generator={generateSafetyInterpretation} icon={ShieldAlert} />
            </div>
         )}

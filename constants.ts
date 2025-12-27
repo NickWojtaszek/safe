@@ -585,6 +585,12 @@ const generateMockData = () => {
       procedural_complications: Math.random() > 0.9 ? 'tak' : 'nie',
       complication_type: Math.random() > 0.95 ? 'dissection' : '',
       complication_managed: 'interventional',
+      endoleak_type_1: Math.random() > 0.85 ? 'tak' : 'nie',
+      endoleak_type_2: Math.random() > 0.95 ? 'tak' : 'nie',
+      endoleak_type_3: Math.random() > 0.98 ? 'tak' : 'nie',
+      sci_any: Math.random() > 0.92 ? 'tak' : 'nie',
+      sci_severity: Math.random() > 0.92 ? (Math.random() > 0.5 ? 'weak' : 'paral') : '',
+      sci_onset_h_post_proc: Math.random() > 0.92 ? 2 + Math.floor(Math.random() * 12) : 0,
       
       // Section F - 30-Day Outcomes
       any_stroke_30d: hasStroke,

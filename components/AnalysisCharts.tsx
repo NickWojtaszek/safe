@@ -98,31 +98,67 @@ export const TimeByDeviceChart: React.FC<{ data: TimeByConfig[] }> = ({ data }) 
   );
 };
 
+const getHeatmapColor = (rate: number, baseColor: string): string => {
+  const intensity = Math.min(rate / 25, 1);
+  const colorMap: { [key: string]: { light: string; dark: string } } = {
+    endoleak: { light: '#78350f', dark: '#fbbf24' },
+    sci: { light: '#7f1d1d', dark: '#fca5a5' },
+    bleeding: { light: '#831843', dark: '#fbcfe8' },
+    stroke: { light: '#4c1d95', dark: '#d8b4fe' },
+    death: { light: '#7f1d1d', dark: '#fecaca' }
+  };
+  const colors = colorMap[baseColor] || { light: '#1e293b', dark: '#64748b' };
+  const r = parseInt(colors.light.slice(1, 3), 16);
+  const g = parseInt(colors.light.slice(3, 5), 16);
+  const b = parseInt(colors.light.slice(5, 7), 16);
+  const r2 = parseInt(colors.dark.slice(1, 3), 16);
+  const g2 = parseInt(colors.dark.slice(3, 5), 16);
+  const b2 = parseInt(colors.dark.slice(5, 7), 16);
+  const nr = Math.round(r + (r2 - r) * intensity);
+  const ng = Math.round(g + (g2 - g) * intensity);
+  const nb = Math.round(b + (b2 - b) * intensity);
+  return `rgb(${nr}, ${ng}, ${nb})`;
+};
+
 export const ComplicationMatrix: React.FC<{ data: SafetyMatrixRow[] }> = ({ data }) => {
   if (!data || data.length === 0) return null;
-  const width = 560; const height = data.length * 50 + 60; const margin = { top: 50, right: 20, bottom: 10, left: 160 }; const maxEndoleak = 20; const maxSci = 10;
+  const width = 700;
+  const height = Math.max(data.length * 70 + 60, 250);
+  const margin = { top: 50, right: 20, bottom: 15, left: 140 };
+  const cellWidth = 85;
+  const cellHeight = 60;
+  const complications = [
+    { label: 'ENDOLEAK', key: 'endoleakRate', color: 'endoleak' },
+    { label: 'SCI', key: 'sciRate', color: 'sci' },
+    { label: 'BLEEDING', key: 'bleedingRate', color: 'bleeding' },
+    { label: 'STROKE', key: 'strokeRate', color: 'stroke' },
+    { label: 'DEATH', key: 'deathRate', color: 'death' }
+  ];
+  
   return (
-    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-      <text x={margin.left + 50} y={margin.top - 30} textAnchor="middle" className="text-[10px] fill-slate-400 uppercase font-bold">Endoleak I/III</text>
-      <text x={margin.left + 150} y={margin.top - 30} textAnchor="middle" className="text-[10px] fill-slate-400 uppercase font-bold">Spinal Ischemia</text>
-      <g>
-        <text x={10} y={20} className="text-[10px] fill-slate-400 font-bold">LEGEND:</text>
-        <rect x={10} y={25} width={130} height={35} fill="rgba(15, 23, 42, 0.95)" stroke="#06b6d4" strokeWidth="1" rx="3" />
-        <rect x={15} y={30} width={12} height={12} fill="#f59e0b" opacity="0.8" />
-        <text x={32} y={38} className="text-[9px] fill-cyan-300 font-semibold">Endoleak</text>
-        <rect x={15} y={47} width={12} height={12} fill="#ef4444" opacity="0.8" />
-        <text x={32} y={55} className="text-[9px] fill-cyan-300 font-semibold">SCI Rate</text>
-      </g>
+    <svg width="100%" height="auto" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="overflow-visible">
+      {complications.map((comp, i) => (
+        <text key={`header-${i}`} x={margin.left + i * cellWidth + cellWidth/2} y={margin.top - 15} textAnchor="middle" className="text-[11px] fill-slate-300 uppercase font-bold tracking-wide">{comp.label}</text>
+      ))}
+      
       {data.map((row, i) => {
-        const y = margin.top + i * 50;
+        const y = margin.top + i * cellHeight;
         return (
           <g key={i}>
-            <text x={margin.left - 15} y={y + 20} textAnchor="end" className="text-xs fill-slate-300 font-medium">{row.groupLabel?.split('(')[0]}</text>
-            <text x={margin.left - 15} y={y + 32} textAnchor="end" className="text-[9px] fill-slate-500 font-mono">({row.groupLabel?.split('(')[1]}</text>
-            <rect x={margin.left} y={y} width={100} height={40} fill="#f59e0b" fillOpacity={Math.min((row.endoleakRate ?? 0) / maxEndoleak, 1) * 0.8 + 0.1} rx="4" />
-            <text x={margin.left + 50} y={y + 24} textAnchor="middle" className="text-sm fill-white font-bold shadow-black drop-shadow-md">{(row.endoleakRate ?? 0).toFixed(1)}%</text>
-            <rect x={margin.left + 110} y={y} width={100} height={40} fill="#ef4444" fillOpacity={Math.min((row.sciRate ?? 0) / maxSci, 1) * 0.8 + 0.1} rx="4" />
-            <text x={margin.left + 160} y={y + 24} textAnchor="middle" className="text-sm fill-white font-bold shadow-black drop-shadow-md">{(row.sciRate ?? 0).toFixed(1)}%</text>
+            <text x={margin.left - 12} y={y + cellHeight/2 + 5} textAnchor="end" className="text-[11px] fill-slate-200 font-medium">{row.groupLabel?.split('(')[0]?.trim()}</text>
+            
+            {complications.map((comp, j) => {
+              const x = margin.left + j * cellWidth;
+              const rate = (row as any)[comp.key] ?? 0;
+              const color = getHeatmapColor(rate, comp.color);
+              
+              return (
+                <g key={`${i}-${j}`}>
+                  <rect x={x} y={y} width={cellWidth - 8} height={cellHeight - 8} fill={color} rx="3" />
+                  <text x={x + (cellWidth - 8)/2} y={y + cellHeight/2 + 6} textAnchor="middle" className="text-[12px] fill-white font-bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>{rate.toFixed(1)}%</text>
+                </g>
+              );
+            })}
           </g>
         );
       })}
@@ -145,15 +181,36 @@ export const TimeVsBleedingChart: React.FC<{ data: TimeVsBleeding[] }> = ({ data
          const x = margin.left + 50 + i * 100;
          return ( <g key={i}><text x={x} y={height - margin.bottom + 15} textAnchor="middle" className="text-[10px] fill-slate-300 font-bold uppercase">{d.bleeding ? 'Major Bleed' : 'No Bleed'}</text><line x1={x} y1={margin.top + yScale(d.timeStat?.min ?? 0)} x2={x} y2={margin.top + yScale(d.timeStat?.max ?? 0)} stroke="#475569" /><line x1={x - 10} y1={margin.top + yScale(d.timeStat?.min ?? 0)} x2={x + 10} y2={margin.top + yScale(d.timeStat?.min ?? 0)} stroke="#475569" /><line x1={x - 10} y1={margin.top + yScale(d.timeStat?.max ?? 0)} x2={x + 10} y2={margin.top + yScale(d.timeStat?.max ?? 0)} stroke="#475569" /><rect x={x - barWidth/2} y={yQ3} width={barWidth} height={yQ1 - yQ3} fill={color} opacity="0.8" stroke={color} /><line x1={x - barWidth/2} y1={yMed} x2={x + barWidth/2} y2={yMed} stroke="white" strokeWidth="2" /><text x={x + barWidth/2 + 8} y={yMed + 3} className="text-[10px] fill-slate-300 font-mono">{(d.timeStat?.median ?? 0).toFixed(0)}</text></g> );
        })}
-       <g>
-         <rect x={margin.left} y={height - 50} width={280} height={40} fill="rgba(15, 23, 42, 0.5)" stroke="#475569" rx="3" />
-         <line x1={margin.left + 10} x2={margin.left + 25} y1={height - 38} y2={height - 38} stroke="#f87171" strokeWidth="8" />
-         <text x={margin.left + 35} y={height - 33} className="text-[9px] fill-slate-300">Major Bleed</text>
-         <line x1={margin.left + 150} x2={margin.left + 165} y1={height - 38} y2={height - 38} stroke="#22d3ee" strokeWidth="8" />
-         <text x={margin.left + 175} y={height - 33} className="text-[9px] fill-slate-300">No Bleed</text>
-         <line x1={margin.left + 10} x2={margin.left + 25} y1={height - 22} y2={height - 22} stroke="#475569" strokeWidth="1" />
-         <text x={margin.left + 35} y={height - 16} className="text-[9px] fill-slate-400">Min-Max Range</text>
-       </g>
+    </svg>
+  );
+};
+
+export interface TimeVsEvent {
+  event: boolean;
+  eventLabel: string;
+  timeStat: {
+    median: number;
+    iqr: [number, number];
+    min: number;
+    max: number;
+  };
+}
+
+export const TimeVsStrokeChart: React.FC<{ data: TimeVsEvent[] }> = ({ data }) => {
+  if (!data || data.length < 2) return null;
+  const width = 360; const height = 250; const margin = { top: 20, right: 20, bottom: 60, left: 50 }; const chartHeight = height - margin.top - margin.bottom; const maxTime = Math.max(...data.map(d => d.timeStat?.max ?? 300), 300) * 1.1; const yScale = (val: number) => chartHeight - (val / maxTime) * chartHeight; const barWidth = 40;
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+       <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#334155" />
+       <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#334155" />
+       <text x={margin.left - 5} y={height - margin.bottom} textAnchor="end" className="text-[10px] fill-slate-500">0</text>
+       <text x={margin.left - 5} y={margin.top} textAnchor="end" className="text-[10px] fill-slate-500">{maxTime.toFixed(0)} min</text>
+       <text x={width/2} y={height - 5} textAnchor="middle" className="text-xs fill-slate-400 font-bold">Procedure Time by Stroke Status</text>
+       {data.map((d, i) => {
+         const yMed = margin.top + yScale(d.timeStat?.median ?? 0); const yQ1 = margin.top + yScale(d.timeStat?.iqr[0] ?? 0); const yQ3 = margin.top + yScale(d.timeStat?.iqr[1] ?? 0); const color = d.event ? '#fca5a5' : '#22d3ee';
+         const x = margin.left + 50 + i * 100;
+         return ( <g key={i}><text x={x} y={height - margin.bottom + 15} textAnchor="middle" className="text-[10px] fill-slate-300 font-bold uppercase">{d.eventLabel}</text><line x1={x} y1={margin.top + yScale(d.timeStat?.min ?? 0)} x2={x} y2={margin.top + yScale(d.timeStat?.max ?? 0)} stroke="#475569" /><line x1={x - 10} y1={margin.top + yScale(d.timeStat?.min ?? 0)} x2={x + 10} y2={margin.top + yScale(d.timeStat?.min ?? 0)} stroke="#475569" /><line x1={x - 10} y1={margin.top + yScale(d.timeStat?.max ?? 0)} x2={x + 10} y2={margin.top + yScale(d.timeStat?.max ?? 0)} stroke="#475569" /><rect x={x - barWidth/2} y={yQ3} width={barWidth} height={yQ1 - yQ3} fill={color} opacity="0.8" stroke={color} /><line x1={x - barWidth/2} y1={yMed} x2={x + barWidth/2} y2={yMed} stroke="white" strokeWidth="2" /><text x={x + barWidth/2 + 8} y={yMed + 3} className="text-[10px] fill-slate-300 font-mono">{(d.timeStat?.median ?? 0).toFixed(0)}</text></g> );
+       })}
     </svg>
   );
 };
@@ -908,5 +965,108 @@ export const AnatomicalRiskCard: React.FC<{ incompleteCow: { n: number; rate: nu
         </p>
       </div>
     </div>
+  );
+};
+
+export interface ComplicationRate {
+  label: string;
+  rate: number;
+  color: string;
+}
+
+export const ComplicationRatesList: React.FC<{ data: ComplicationRate[] }> = ({ data }) => {
+  if (!data || data.length === 0) return null;
+  const sorted = [...data].sort((a, b) => b.rate - a.rate);
+  const maxRate = Math.max(...sorted.map(d => d.rate), 50);
+  
+  return (
+    <svg width="100%" height="auto" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid meet" className="overflow-visible">
+      {sorted.map((item, i) => {
+        const y = 40 + i * 45;
+        const barWidth = (item.rate / maxRate) * 450;
+        
+        return (
+          <g key={i}>
+            <text x={15} y={y + 12} className="text-[11px] fill-slate-300 font-medium" textAnchor="start">{item.label}</text>
+            <rect x={200} y={y - 2} width={barWidth} height={20} fill={item.color} rx="2" opacity="0.85" />
+            <text x={210 + barWidth} y={y + 12} className="text-[12px] fill-white font-bold" textAnchor="start">{item.rate.toFixed(1)}%</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+export const ProceduralTimeByConfig: React.FC<{ data: TimeByConfig[] }> = ({ data }) => {
+  if (!data || data.length === 0) return null;
+  const width = 600;
+  const height = Math.max(data.length * 70 + 60, 250);
+  const margin = { top: 40, right: 50, bottom: 20, left: 150 };
+  const chartWidth = width - margin.left - margin.right;
+  const maxTime = Math.max(...data.map(d => d.timeStat?.max ?? 0), 330) * 1.1;
+  const xScale = (val: number) => (val / maxTime) * chartWidth;
+  
+  return (
+    <svg width="100%" height="auto" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="overflow-visible">
+      <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#334155" />
+      <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#334155" />
+      
+      <text x={margin.left - 10} y={height - margin.bottom + 18} textAnchor="end" className="text-[10px] fill-slate-500">0</text>
+      <text x={width - margin.right} y={height - margin.bottom + 18} textAnchor="start" className="text-[10px] fill-slate-500">{maxTime.toFixed(0)} min</text>
+      
+      {data.map((d, i) => {
+        const y = margin.top + i * ((height - margin.top - margin.bottom) / data.length) + ((height - margin.top - margin.bottom) / data.length) / 2;
+        const xMin = margin.left + xScale(d.timeStat?.min ?? 0);
+        const xQ1 = margin.left + xScale(d.timeStat?.iqr[0] ?? 0);
+        const xMedian = margin.left + xScale(d.timeStat?.median ?? 0);
+        const xQ3 = margin.left + xScale(d.timeStat?.iqr[1] ?? 0);
+        const xMax = margin.left + xScale(d.timeStat?.max ?? 0);
+        
+        return (
+          <g key={i}>
+            <text x={margin.left - 12} y={y + 5} textAnchor="end" className="text-[11px] fill-slate-300 font-bold uppercase">{d.config}</text>
+            <line x1={xMin} y1={y - 1} x2={xQ1} y2={y - 1} stroke="#475569" strokeWidth="2" />
+            <rect x={xQ1} y={y - 12} width={Math.max(xQ3 - xQ1, 4)} height={24} fill="#475569" rx="3" stroke="#64748b" strokeWidth="1" />
+            <line x1={xMedian} y1={y - 14} x2={xMedian} y2={y + 14} stroke="#22d3ee" strokeWidth="3" />
+            <line x1={xQ3} y1={y - 1} x2={xMax} y2={y - 1} stroke="#475569" strokeWidth="2" />
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+export const ContrastVsCreatinine: React.FC<{ data: ScatterPoint[] }> = ({ data }) => {
+  if (!data || data.length === 0) return null;
+  const width = 600;
+  const height = 400;
+  const margin = { top: 30, right: 40, bottom: 50, left: 70 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+  
+  const maxX = Math.max(...data.map(d => d.x), 500) * 1.1;
+  const maxY = Math.max(...data.map(d => d.y), 2) * 1.1;
+  
+  const xScale = (val: number) => (val / maxX) * chartWidth;
+  const yScale = (val: number) => chartHeight - (val / maxY) * chartHeight;
+  
+  return (
+    <svg width="100%" height="auto" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="overflow-visible">
+      <line x1={margin.left} y1={margin.top} x2={margin.left} y2={height - margin.bottom} stroke="#334155" />
+      <line x1={margin.left} y1={height - margin.bottom} x2={width - margin.right} y2={height - margin.bottom} stroke="#334155" />
+      
+      <text x={margin.left} y={height - margin.bottom + 35} textAnchor="middle" className="text-[10px] fill-slate-400 font-bold">Contrast Volume (mL)</text>
+      <text x={20} y={height / 2} textAnchor="middle" className="text-[10px] fill-slate-400 font-bold" transform={`rotate(-90 20 ${height/2})`}>Baseline Creatinine</text>
+      
+      {data.map((point, i) => {
+        const x = margin.left + xScale(point.x);
+        const y = margin.top + yScale(point.y);
+        const color = point.group === 'aki' ? '#ef4444' : '#06b6d4';
+        
+        return (
+          <circle key={i} cx={x} cy={y} r="4" fill={color} opacity="0.8" className="drop-shadow-lg" />
+        );
+      })}
+    </svg>
   );
 };
