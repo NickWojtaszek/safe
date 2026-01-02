@@ -966,7 +966,7 @@ const generateMockData = () => {
       sepsis_30d: Math.random() > 0.97 ? 'tak' : 'nie',
       stentgraft_infection: Math.random() > 0.98 ? 'tak' : 'nie',
       bleeding_barc_ge_3: Math.random() > 0.9 ? 'tak' : 'nie',
-      prbc_units_transfused: units_transfused,
+      prbc_units_transfused: Math.floor(Math.random() * 4),
       reop_for_bleeding: Math.random() > 0.96 ? 'tak' : 'nie',
       bowel_ischemia: Math.random() > 0.97 ? 'tak' : 'nie',
       arm_ischemia_lsa: Math.random() > 0.95 ? 'tak' : 'nie',
