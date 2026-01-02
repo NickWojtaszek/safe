@@ -18,6 +18,20 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              // Split vendor libraries for better caching
+              'vendor': ['react', 'react-dom'],
+              // Split utilities as separate chunk
+              'utils': ['crypto']
+            }
+          }
+        },
+        // Increase chunk size limit since we're using manual chunks
+        chunkSizeWarningLimit: 1000
       }
     };
 });
