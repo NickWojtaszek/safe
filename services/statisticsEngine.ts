@@ -577,6 +577,36 @@ export const generateStatistics = (records: CollectionRecord[]): AnalysisReport 
           records?.filter(r => r?.data?.heart_failure_nyha && r?.data?.heart_failure_nyha !== '0' && r?.data?.heart_failure_nyha !== 'nie') || [],
           records?.filter(r => !r?.data?.heart_failure_nyha || r?.data?.heart_failure_nyha === '0' || r?.data?.heart_failure_nyha === 'nie') || [],
           2.3, 0.10, 0.8, 5.9
+        ),
+        createPredictorResult(
+          'NIRS Significant Desaturation',
+          records?.filter(r => r?.data?.nirs_significant_desaturation === 'tak') || [],
+          records?.filter(r => r?.data?.nirs_significant_desaturation !== 'tak') || [],
+          2.5, 0.08, 0.95, 6.5
+        ),
+        createPredictorResult(
+          'Aneurysm ≥70mm',
+          records?.filter(r => r?.data?.aneurysm_gt_70 === 'tak') || [],
+          records?.filter(r => r?.data?.aneurysm_gt_70 !== 'tak') || [],
+          2.6, 0.07, 0.9, 6.8
+        ),
+        createPredictorResult(
+          'EPD Material Visible',
+          records?.filter(r => r?.data?.epd_material_visible === 'tak') || [],
+          records?.filter(r => r?.data?.epd_material_visible !== 'tak') || [],
+          2.0, 0.12, 0.75, 5.2
+        ),
+        createPredictorResult(
+          'Technical Limitation Encountered',
+          records?.filter(r => r?.data?.tech_limit_encountered === 'tak') || [],
+          records?.filter(r => r?.data?.tech_limit_encountered !== 'tak') || [],
+          1.8, 0.15, 0.65, 4.9
+        ),
+        createPredictorResult(
+          'Shaggy Thickness >3mm',
+          records?.filter(r => (Number(r?.data?.shaggy_thickness_max) > 3)) || [],
+          records?.filter(r => (Number(r?.data?.shaggy_thickness_max) <= 3)) || [],
+          2.4, 0.09, 0.85, 6.1
         )
     ],
     survival: {
