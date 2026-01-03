@@ -10,7 +10,7 @@ import {
   generateSurvivalInterpretation,
   generateSubgroupInterpretation,
   generateMasterSummary
-} from '../services/geminiService';
+} from '../services/claudeService';
 import { 
   MultiLineKmChart, TimeByDeviceChart, ComplicationMatrix, 
   TimeVsBleedingChart, TimeVsStrokeChart, ScatterPlot, DonutChart, 
