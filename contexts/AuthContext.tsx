@@ -20,6 +20,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Admin emails - users with these emails get admin access
+const ADMIN_EMAILS = ['nick@safe-arch.com', 'admin@safe-arch.com'];
+
+const getAdminRole = (email: string): UserRole => {
+  return ADMIN_EMAILS.includes(email.toLowerCase()) ? 'admin' : 'user';
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser({
             id: supabaseUser.id,
             email: supabaseUser.email || '',
-            role: 'user',
+            role: getAdminRole(supabaseUser.email || ''),
           });
         }
       } catch (error) {
@@ -51,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser({
           id: session.user.id,
           email: session.user.email || '',
-          role: 'user',
+          role: getAdminRole(session.user.email || ''),
         });
       } else {
         setUser(null);
@@ -70,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser({
           id: data.user.id,
           email: data.user.email || '',
-          role: 'user',
+          role: getAdminRole(data.user.email || ''),
         });
       }
     } catch (error) {
@@ -87,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser({
           id: data.user.id,
           email: data.user.email || '',
-          role: 'user',
+          role: getAdminRole(data.user.email || ''),
         });
       }
     } catch (error) {
