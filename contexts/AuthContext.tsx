@@ -21,7 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Admin emails - users with these emails get admin access
-const ADMIN_EMAILS = ['nick@safe-arch.com', 'admin@safe-arch.com'];
+const ADMIN_EMAILS = ['nwojtaszek@gmail.com'];
 
 const getAdminRole = (email: string): UserRole => {
   return ADMIN_EMAILS.includes(email.toLowerCase()) ? 'admin' : 'user';
