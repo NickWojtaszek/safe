@@ -8,13 +8,15 @@ interface DataDisplayProps {
   selectedParameters: string[];
   onToggleParameter: (paramId: string) => void;
   onImport: (records: CollectionRecord[]) => void;
+  onSelectRecord?: (record: CollectionRecord) => void;
 }
 
 const DataDisplay: React.FC<DataDisplayProps> = ({ 
   records, 
   selectedParameters, 
   onToggleParameter,
-  onImport
+  onImport,
+  onSelectRecord
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -248,7 +250,11 @@ const DataDisplay: React.FC<DataDisplayProps> = ({
               </thead>
               <tbody className="divide-y divide-slate-800/50 bg-slate-900">
                 {records.map((record, idx) => (
-                  <tr key={record.id} className="hover:bg-cyan-900/10 transition-colors group">
+                  <tr 
+                    key={record.id} 
+                    onClick={() => onSelectRecord?.(record)}
+                    className="hover:bg-cyan-900/20 transition-colors group cursor-pointer"
+                  >
                      <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-slate-600 group-hover:text-cyan-500/50">
                         {idx + 1}
                      </td>

@@ -23,7 +23,7 @@ const AppContent: React.FC = () => {
   const [records, setRecords] = useState<CollectionRecord[]>([]);
   const [selectedParameters, setSelectedParameters] = useState<string[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedRecord, setSelectedRecord] = useState<CollectionRecord | null>(null);
 
   // Load records from Supabase on mount and when user changes
   useEffect(() => {
@@ -102,6 +102,11 @@ const AppContent: React.FC = () => {
       showNotification('All records deleted successfully');
       setActiveTab(Tab.COLLECT);
     }
+  };
+
+  const handleSelectRecord = (record: CollectionRecord) => {
+    setSelectedRecord(record);
+    setActiveTab(Tab.COLLECT);
   };
 
   const handleImportRecords = (newRecords: CollectionRecord[]) => {
@@ -230,7 +235,7 @@ const AppContent: React.FC = () => {
         <div className="animate-fade-in w-full max-w-[98%] mx-auto">
           {activeTab === Tab.COLLECT && (
             <div className="space-y-6">
-              <Wizard onComplete={handleRecordComplete} />
+              <Wizard onComplete={handleRecordComplete} initialRecord={selectedRecord} />
             </div>
           )}
 
@@ -240,6 +245,7 @@ const AppContent: React.FC = () => {
               selectedParameters={selectedParameters}
               onToggleParameter={handleToggleParameter}
               onImport={handleImportRecords}
+              onSelectRecord={handleSelectRecord}
             />
           )}
 

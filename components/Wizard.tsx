@@ -6,11 +6,12 @@ import { ArrowRight, ArrowLeft, Save, FileText, AlertTriangle, Info } from 'luci
 
 interface WizardProps {
   onComplete: (record: CollectionRecord) => void;
+  initialRecord?: CollectionRecord | null;
 }
 
-const Wizard: React.FC<WizardProps> = ({ onComplete }) => {
+const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord }) => {
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, any>>(initialRecord?.data || {});
   
   const [warnings, setWarnings] = useState<Record<string, string>>({});
 
