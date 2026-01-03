@@ -1,44 +1,38 @@
 
 import { AnalysisReport } from './statisticsEngine';
 
-// Anthropic API client initialization for browser
+// Claude API client via backend proxy
 const getAi = () => {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || '';
-  
-  if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY') {
-    throw new Error('Anthropic API key not configured. Set VITE_ANTHROPIC_API_KEY in .env.local');
-  }
-  
   return {
     async callApi(prompt: string, maxTokens: number = 1024): Promise<string> {
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        const response = await fetch('/api/claude', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: maxTokens,
-            messages: [{ role: 'user', content: prompt }]
+            prompt,
+            maxTokens
           })
         });
 
         if (!response.ok) {
-          const errorData = await response.text();
-          console.error(`API error (${response.status}):`, errorData);
-          throw new Error(`API Error ${response.status}: ${response.statusText}\n${errorData}`);
+          const errorData = await response.json();
+          const errorMsg = errorData.details || errorData.error;
+          console.error(`API error (${response.status}):`, errorMsg);
+          throw new Error(`API Error ${response.status}: ${response.statusText}\n${errorMsg}`);
         }
 
         const data = await response.json();
         console.log('API Response:', data);
         
-        const content = data.content?.[0];
+        if (data.text) {
+          return data.text;
+        }
         
-        if (content?.type === 'text') {
-          return content.text;
+        if (data.error) {
+          throw new Error(data.error);
         }
         
         return "No text output from API.";
