@@ -169,3 +169,124 @@ export const generateMasterSummary = async (report: AnalysisReport, analyses: Re
   return ai.callApi(prompt, 2048);
 };
 
+export const generateDemographicsInterpretation = async (report: AnalysisReport): Promise<string> => {
+  const ai = getAi();
+  const prompt = `
+    You are a Clinical Epidemiologist. Analyze the demographic composition of the SAFE-ARCH cohort.
+
+    DATA:
+    ${JSON.stringify(report.demographics, null, 2)}
+
+    INSTRUCTIONS:
+    - Summarize patient age, gender, and comorbidity burden.
+    - Comment on the representativeness of the cohort.
+    - Identify any demographic risk factors that may affect outcomes.
+    - Assess the balance of comorbidities across the population.
+  `;
+  return ai.callApi(prompt, 1024);
+};
+
+export const generateBaselineInterpretation = async (report: AnalysisReport): Promise<string> => {
+  const ai = getAi();
+  const prompt = `
+    You are a Clinical Cardiologist specializing in vascular disease. Analyze baseline patient characteristics and comorbidity burden.
+
+    DATA:
+    ${JSON.stringify(report.baseline, null, 2)}
+    ${JSON.stringify(report.comorbidities, null, 2)}
+
+    INSTRUCTIONS:
+    - Assess the overall comorbidity burden (Charlson index equivalent).
+    - Identify the most prevalent baseline conditions (CAD, HTN, DM, CKD, etc.).
+    - Comment on cardiopulmonary fitness and operative risk.
+    - Discuss how these baseline factors may impact procedural outcomes.
+  `;
+  return ai.callApi(prompt, 1024);
+};
+
+export const generateAnatomyInterpretation = async (report: AnalysisReport): Promise<string> => {
+  const ai = getAi();
+  const prompt = `
+    You are a Vascular Interventionist with expertise in aortic anatomy. Analyze preoperative vascular anatomy findings.
+
+    DATA:
+    ${JSON.stringify(report.vascularAnatomy, null, 2)}
+
+    INSTRUCTIONS:
+    - Assess Circle of Willis completeness and posterior circulation risk.
+    - Comment on vertebral artery patency and dominance patterns.
+    - Evaluate carotid artery status (stenosis, occlusion risk).
+    - Identify anatomical high-risk features (hypoplastic VA, incomplete CoW, etc.).
+    - Discuss implications for device selection and embolic protection strategy.
+  `;
+  return ai.callApi(prompt, 1024);
+};
+
+export const generatePathologyInterpretation = async (report: AnalysisReport): Promise<string> => {
+  const ai = getAi();
+  const prompt = `
+    You are an Aortic Surgeon. Analyze device selection, implantation details, and pathological findings.
+
+    DATA:
+    ${JSON.stringify(report.pathology, null, 2)}
+    ${JSON.stringify(report.deviceSelection, null, 2)}
+
+    INSTRUCTIONS:
+    - Summarize device types used (Branched, Fenestrated, Chimney) and their frequency.
+    - Comment on implantation technical aspects (approach, operative time, intraoperative events).
+    - Analyze pathological findings (aneurysm extent, dissection characteristics, coverage needs).
+    - Discuss how device choice relates to anatomical findings and baseline risk factors.
+  `;
+  return ai.callApi(prompt, 1024);
+};
+
+export const generateRiskPredictorInterpretation = async (report: AnalysisReport): Promise<string> => {
+  const ai = getAi();
+  const prompt = `
+    You are a Biostatistician specializing in risk stratification. Analyze predictive models for adverse events.
+
+    DATA:
+    ${JSON.stringify(report.univariate, null, 2)}
+
+    INSTRUCTIONS:
+    - Identify the strongest univariate predictors of stroke and mortality.
+    - Calculate relative risk ratios and 95% confidence intervals for top predictors.
+    - Develop a risk stratification schema (Low/Moderate/High risk groups).
+    - Recommend which patient populations should receive enhanced monitoring or intervention.
+  `;
+  return ai.callApi(prompt, 1024);
+};
+
+export const generateComprehensiveStudyReport = async (report: AnalysisReport, allAnalyses: Record<string, string>): Promise<string> => {
+  const ai = getAi();
+  const prompt = `
+    You are the Lead Investigator for the SAFE-ARCH trial. Write a comprehensive study report synthesizing all analyses.
+
+    INDIVIDUAL ANALYSES:
+    Overview: ${allAnalyses.overview}
+    Demographics: ${allAnalyses.demographics}
+    Baseline Characteristics: ${allAnalyses.baseline}
+    Vascular Anatomy: ${allAnalyses.anatomy}
+    Device & Pathology: ${allAnalyses.pathology}
+    Neurological Outcomes: ${allAnalyses.neuro}
+    Safety Profile: ${allAnalyses.safety}
+    Survival Analysis: ${allAnalyses.survival}
+    Subgroup Analysis: ${allAnalyses.subgroups}
+    Risk Predictors: ${allAnalyses.predict}
+
+    INSTRUCTIONS:
+    Write a 1500-2000 word comprehensive report including:
+    1. **Executive Summary** (200 words): Key findings and clinical significance
+    2. **Patient Population** (200 words): Demographics, baselines, and cohort representativeness
+    3. **Anatomical Assessment** (200 words): Vascular findings and risk stratification
+    4. **Procedure & Device Strategy** (200 words): Technical approach and device selection rationale
+    5. **Clinical Outcomes** (300 words): Primary endpoints, neurological complications, mortality
+    6. **Safety Profile** (200 words): Adverse events, complication patterns, risk factors
+    7. **Risk Stratification** (200 words): High-risk populations and predictive models
+    8. **Conclusions & Recommendations** (200 words): Overall trial success, clinical implications, future directions
+
+    Format professionally for medical journal submission.
+  `;
+  return ai.callApi(prompt, 2048);
+};
+

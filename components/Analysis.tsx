@@ -9,7 +9,13 @@ import {
   generateSafetyInterpretation,
   generateSurvivalInterpretation,
   generateSubgroupInterpretation,
-  generateMasterSummary
+  generateMasterSummary,
+  generateDemographicsInterpretation,
+  generateBaselineInterpretation,
+  generateAnatomyInterpretation,
+  generatePathologyInterpretation,
+  generateRiskPredictorInterpretation,
+  generateComprehensiveStudyReport
 } from '../services/claudeService';
 import { 
   analyzeAllTabs,
@@ -74,20 +80,32 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
 
   const [aiAnalysis, setAiAnalysis] = useState<{
     overview: AiStatus;
+    demographics: AiStatus;
+    baseline: AiStatus;
+    anatomy: AiStatus;
+    pathology: AiStatus;
     neuro: AiStatus;
     safety: AiStatus;
     survival: AiStatus;
     subgroups: AiStatus;
     predictors: AiStatus;
+    univariate: AiStatus;
     master: AiStatus;
+    report: AiStatus;
   }>({
     overview: { text: null, loading: false },
+    demographics: { text: null, loading: false },
+    baseline: { text: null, loading: false },
+    anatomy: { text: null, loading: false },
+    pathology: { text: null, loading: false },
     neuro: { text: null, loading: false },
     safety: { text: null, loading: false },
     survival: { text: null, loading: false },
     subgroups: { text: null, loading: false },
     predictors: { text: null, loading: false },
+    univariate: { text: null, loading: false },
     master: { text: null, loading: false },
+    report: { text: null, loading: false },
   });
 
   const safeDiv = (num: number, den: number) => den === 0 ? 0 : num / den;
@@ -170,11 +188,16 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
     try {
       const analysesMap = {
         overview: aiAnalysis.overview.text || "",
+        demographics: aiAnalysis.demographics.text || "",
+        baseline: aiAnalysis.baseline.text || "",
+        anatomy: aiAnalysis.anatomy.text || "",
+        pathology: aiAnalysis.pathology.text || "",
         neuro: aiAnalysis.neuro.text || "",
         safety: aiAnalysis.safety.text || "",
         survival: aiAnalysis.survival.text || "",
         subgroups: aiAnalysis.subgroups.text || "",
         predictors: aiAnalysis.predictors.text || "",
+        univariate: aiAnalysis.univariate.text || "",
       };
       const text = await generateMasterSummary(report, analysesMap);
       setAiAnalysis(prev => ({ ...prev, master: { text, loading: false } }));
@@ -183,14 +206,43 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
     }
   };
 
+  const runComprehensiveReport = async () => {
+    if (!report) return;
+    setAiAnalysis(prev => ({ ...prev, report: { ...prev.report, loading: true } }));
+    try {
+      const allAnalyses = {
+        overview: aiAnalysis.overview.text || "",
+        demographics: aiAnalysis.demographics.text || "",
+        baseline: aiAnalysis.baseline.text || "",
+        anatomy: aiAnalysis.anatomy.text || "",
+        pathology: aiAnalysis.pathology.text || "",
+        neuro: aiAnalysis.neuro.text || "",
+        safety: aiAnalysis.safety.text || "",
+        survival: aiAnalysis.survival.text || "",
+        subgroups: aiAnalysis.subgroups.text || "",
+        predict: aiAnalysis.predictors.text || "",
+        univariate: aiAnalysis.univariate.text || "",
+      };
+      const text = await generateComprehensiveStudyReport(report, allAnalyses);
+      setAiAnalysis(prev => ({ ...prev, report: { text, loading: false } }));
+    } catch (e) {
+      setAiAnalysis(prev => ({ ...prev, report: { text: "Comprehensive report generation failed.", loading: false } }));
+    }
+  };
+
   const areSubAgentsComplete = () => {
     return (
       aiAnalysis.overview.text &&
+      aiAnalysis.demographics.text &&
+      aiAnalysis.baseline.text &&
+      aiAnalysis.anatomy.text &&
+      aiAnalysis.pathology.text &&
       aiAnalysis.neuro.text &&
       aiAnalysis.safety.text &&
       aiAnalysis.survival.text &&
       aiAnalysis.subgroups.text &&
-      aiAnalysis.predictors.text
+      aiAnalysis.predictors.text &&
+      aiAnalysis.univariate.text
     );
   };
 
@@ -663,6 +715,8 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
               <p><strong>For publication:</strong> This model is presented as a secondary outcome of your retrospective analysis, derived to aid institutional risk stratification and patient counseling. External validation is recommended before clinical implementation in other centers.</p>
               <p className="text-slate-500">Data Source: Univariate logistic regression analysis (N={report?.totalRecords}). Formula: baseline_risk × product of applicable ORs.</p>
             </div>
+
+            <AiSection agentKey="predict" title="Risk Stratification Analysis" generator={generateRiskPredictorInterpretation} icon={TrendingUp} />
           </div>
         )}
 
@@ -1226,6 +1280,8 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
                  * P-values calculated using Chi-squared test or Fisher's exact test where appropriate.
                </div>
              </div>
+
+             <AiSection agentKey="univariate" title="Univariate Analysis" generator={generatePredictorInterpretation} icon={Calculator} />
            </div>
         )}
 
@@ -1296,6 +1352,8 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
                 </div>
               </div>
             </div>
+
+            <AiSection agentKey="baseline" title="Baseline Characteristics" generator={generateBaselineInterpretation} icon={FileText} />
           </div>
         )}
 
@@ -1426,6 +1484,8 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
               <div className="bg-blue-950/20 border border-blue-500/30 p-4 rounded text-[10px] text-blue-300">
                 <strong>Next Step - Subgroup Analysis:</strong> These anatomical phenotypes can be used for exploratory subgroup analysis (e.g., stroke type distribution by Willis classification, hemorrhagic vs ischemic by VA status, etc.). This would strengthen your results section.
               </div>
+
+              <AiSection agentKey="anatomy" title="Vascular Anatomy" generator={generateAnatomyInterpretation} icon={FileText} />
             </div>
           </div>
         )}
@@ -1653,6 +1713,8 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
               <div className="bg-blue-950/20 border border-blue-500/30 p-4 rounded text-[10px] text-blue-300">
                 <strong>Next Step:</strong> Consider subgroup analysis by pathology type or device configuration to explore outcome associations in your results section.
               </div>
+
+              <AiSection agentKey="pathology" title="Pathology & Device Analysis" generator={generatePathologyInterpretation} icon={FileText} />
             </div>
           </div>
         )}
@@ -1745,6 +1807,8 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
                    <p className="text-slate-400 text-[11px] leading-relaxed">Horizontal bar chart displaying the prevalence of 21 comorbidities across the patient cohort. Bars are color-coded by condition type and sorted by frequency (highest to lowest). Each bar shows the absolute patient count and percentage of total cohort affected. This visualization enables rapid identification of the most common comorbid conditions and helps assess overall disease burden and risk profile of the study population.</p>
                 </div>
              </div>
+
+             <AiSection agentKey="demographics" title="Demographics Analysis" generator={generateDemographicsInterpretation} icon={Users} />
            </div>
         )}
 
