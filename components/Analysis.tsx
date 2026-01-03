@@ -102,8 +102,9 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
       const text = await generator(report);
       setAiAnalysis(prev => ({ ...prev, [key]: { text, loading: false } }));
     } catch (e) {
-      console.error(e);
-      setAiAnalysis(prev => ({ ...prev, [key]: { text: "Analysis agent failed to respond.", loading: false } }));
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      console.error('Agent error:', errorMsg);
+      setAiAnalysis(prev => ({ ...prev, [key]: { text: `❌ Error: ${errorMsg}\n\nCheck browser console for details. Verify API key is set in .env.local`, loading: false } }));
     }
   };
 

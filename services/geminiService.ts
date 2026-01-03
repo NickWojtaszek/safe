@@ -27,20 +27,25 @@ const getAi = () => {
         });
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.statusText}`);
+          const errorData = await response.text();
+          console.error(`API error (${response.status}):`, errorData);
+          throw new Error(`API Error ${response.status}: ${response.statusText}\n${errorData}`);
         }
 
         const data = await response.json();
+        console.log('API Response:', data);
+        
         const content = data.content?.[0];
         
         if (content?.type === 'text') {
           return content.text;
         }
         
-        return "No output from API.";
+        return "No text output from API.";
       } catch (error) {
-        console.error('API call failed:', error);
-        throw error;
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error('API call failed:', errorMsg);
+        throw new Error(`Analysis failed: ${errorMsg}`);
       }
     }
   };
