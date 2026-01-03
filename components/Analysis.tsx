@@ -716,7 +716,7 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
               <p className="text-slate-500">Data Source: Univariate logistic regression analysis (N={report?.totalRecords}). Formula: baseline_risk × product of applicable ORs.</p>
             </div>
 
-            <AiSection agentKey="predict" title="Risk Stratification Analysis" generator={generateRiskPredictorInterpretation} icon={TrendingUp} />
+            <AiSection agentKey="predictors" title="Risk Stratification Analysis" generator={generateRiskPredictorInterpretation} icon={TrendingUp} />
           </div>
         )}
 
