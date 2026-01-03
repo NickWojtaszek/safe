@@ -7,7 +7,8 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const { login, signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,9 +16,13 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(username, password);
+      if (isSignUp) {
+        await signup(username, password);
+      } else {
+        await login(username, password);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : (isSignUp ? 'Sign up failed' : 'Login failed'));
     } finally {
       setLoading(false);
     }
@@ -37,6 +42,11 @@ const Login: React.FC = () => {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="bg-slate-900 rounded-lg border border-slate-800 shadow-2xl p-8 space-y-6">
+          {/* Title */}
+          <h2 className="text-xl font-semibold text-slate-100 text-center">
+            {isSignUp ? 'Create Account' : 'Sign In'}
+          </h2>
+
           {/* Error Alert */}
           {error && (
             <div className="bg-red-950/30 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
@@ -81,8 +91,22 @@ const Login: React.FC = () => {
             className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             {loading && <Loader className="w-4 h-4 animate-spin" />}
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? (isSignUp ? 'Creating Account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign In')}
           </button>
+
+          {/* Toggle Sign Up/Login */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError(null);
+              }}
+              className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            </button>
+          </div>
 
           {/* Footer Info */}
           <div className="pt-4 border-t border-slate-800">
