@@ -13,6 +13,11 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// Health check endpoint for Railway
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY });
+});
+
 // API Proxy endpoint for Claude
 app.post('/api/claude', async (req, res) => {
   try {
