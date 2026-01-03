@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Layers, Database, Activity, PlusCircle, Monitor, LogOut } from 'lucide-react';
+import { Layers, Database, Activity, Monitor, LogOut, Trash2 } from 'lucide-react';
 import Wizard from './components/Wizard';
 import DataDisplay from './components/DataDisplay';
 import Analysis from './components/Analysis';
 import Login from './components/Login';
 import AdminPanel from './components/AdminPanel';
 import { CollectionRecord } from './types';
-import { MOCK_DATA } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 enum Tab {
@@ -42,13 +41,12 @@ const AppContent: React.FC = () => {
     );
   };
 
-  const loadMockData = () => {
-    setRecords([]);
-    setTimeout(() => {
-      setRecords([...MOCK_DATA]);
-      showNotification("Wgrano dane demonstracyjne v1.1.9 (N=50)");
-      setActiveTab(Tab.DATA);
-    }, 50);
+  const clearAllRecords = () => {
+    if (window.confirm('Are you sure you want to delete ALL records? This cannot be undone.')) {
+      setRecords([]);
+      showNotification('All records deleted successfully');
+      setActiveTab(Tab.COLLECT);
+    }
   };
 
   const handleImportRecords = (newRecords: CollectionRecord[]) => {
@@ -157,14 +155,14 @@ const AppContent: React.FC = () => {
              )}
            </nav>
            
-           {/* Demo Data Button */}
-           {records.length === 0 && (
+           {/* Clear Data Button - for testing */}
+           {records.length > 0 && (
              <div className="absolute right-6 top-4">
                <button 
-                 onClick={loadMockData}
-                 className="flex items-center px-4 py-2 text-xs font-bold text-cyan-400 bg-cyan-950/50 border border-cyan-900/50 rounded hover:bg-cyan-900/50 transition-colors uppercase tracking-wider"
+                 onClick={clearAllRecords}
+                 className="flex items-center px-4 py-2 text-xs font-bold text-red-400 bg-red-950/50 border border-red-900/50 rounded hover:bg-red-900/50 transition-colors uppercase tracking-wider"
                >
-                 <PlusCircle className="w-3 h-3 mr-2" /> Wgraj v1.1.9 Demo Data
+                 <Trash2 className="w-3 h-3 mr-2" /> Clear All Data
                </button>
              </div>
            )}
