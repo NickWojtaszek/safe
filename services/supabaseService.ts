@@ -112,3 +112,16 @@ export const deleteStudy = async (studyId: string) => {
 
   if (error) throw error;
 };
+
+// Export all functions as a service object for easy importing
+export const supabaseService = {
+  signUp,
+  signIn,
+  signOut,
+  getCurrentUser,
+  createStudy,
+  getUserStudies,
+  getStudy,
+  updateStudy,
+  deleteStudy,
+};

@@ -8,6 +8,7 @@ import Login from './components/Login';
 import AdminPanel from './components/AdminPanel';
 import { CollectionRecord } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { supabaseService } from './services/supabaseService';
 
 enum Tab {
   COLLECT = 'collect',
@@ -22,9 +23,61 @@ const AppContent: React.FC = () => {
   const [records, setRecords] = useState<CollectionRecord[]>([]);
   const [selectedParameters, setSelectedParameters] = useState<string[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load records from Supabase on mount and when user changes
+  useEffect(() => {
+    const loadRecords = async () => {
+      if (!user) {
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        // Get user's study or create default one
+        const studies = await supabaseService.getUserStudies();
+        
+        if (studies.length === 0) {
+          // Create a default study for this user
+          const newStudy = await supabaseService.createStudy('Default Study', []);
+          setRecords([]);
+        } else {
+          // Load records from the first study
+          const study = studies[0];
+          setRecords(study.records_data || []);
+        }
+      } catch (error) {
+        console.error('Error loading records:', error);
+        showNotification('Error loading data from database');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRecords();
+  }, [user]);
+
+  // Save records to Supabase whenever they change
+  const saveRecordsToDatabase = async (newRecords: CollectionRecord[]) => {
+    if (!user) return;
+
+    try {
+      const studies = await supabaseService.getUserStudies();
+      if (studies.length > 0) {
+        await supabaseService.updateStudy(studies[0].id, newRecords);
+      }
+    } catch (error) {
+      console.error('Error saving records:', error);
+      showNotification('Warning: Data not saved to database');
+    }
+  };
 
   const handleRecordComplete = (record: CollectionRecord) => {
-    setRecords(prev => [...prev, record]);
+    const newRecords = [...records, record];
+    setRecords(newRecords);
+    saveRecordsToDatabase(newRecords);
     showNotification("Rekord v1.1.9 zapisany pomyślnie");
   };
 
@@ -43,7 +96,9 @@ const AppContent: React.FC = () => {
 
   const clearAllRecords = () => {
     if (window.confirm('Are you sure you want to delete ALL records? This cannot be undone.')) {
-      setRecords([]);
+      const emptyRecords: CollectionRecord[] = [];
+      setRecords(emptyRecords);
+      saveRecordsToDatabase(emptyRecords);
       showNotification('All records deleted successfully');
       setActiveTab(Tab.COLLECT);
     }
@@ -58,7 +113,9 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    setRecords(prev => [...prev, ...uniqueNewRecords]);
+    const allRecords = [...records, ...uniqueNewRecords];
+    setRecords(allRecords);
+    saveRecordsToDatabase(allRecords);
     showNotification(`Zaimportowano ${uniqueNewRecords.length} rekordów (v1.1.9).`);
   };
 
