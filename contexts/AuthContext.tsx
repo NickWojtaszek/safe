@@ -35,6 +35,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkUser = async () => {
       try {
+        // Handle auth callback from Supabase (signup/email confirmation)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        
+        if (accessToken) {
+          // Token was provided by auth callback, clear it from URL
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
         if (supabaseUser) {
           setUser({
