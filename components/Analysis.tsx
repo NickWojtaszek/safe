@@ -12,6 +12,12 @@ import {
   generateMasterSummary
 } from '../services/claudeService';
 import { 
+  analyzeAllTabs,
+  answerStudyQuestion,
+  generateDashboardSynthesis,
+  TabAnalysis
+} from '../services/dashboardAnalysisService';
+import { 
   MultiLineKmChart, TimeByDeviceChart, ComplicationMatrix, 
   TimeVsBleedingChart, TimeVsStrokeChart, ScatterPlot, DonutChart, 
   BurdenMatrix, BurdenRanking, NihssJitterChart, 
@@ -21,7 +27,7 @@ import {
 import { 
   BarChart2, Calculator, Activity, 
   Users, PieChart, GitMerge, TrendingUp, Database, ShieldAlert,
-  Brain, Zap, CheckCircle2, Circle, Lock, Sparkles, FileText, Info, Cpu
+  Brain, Zap, CheckCircle2, Circle, Lock, Sparkles, FileText, Info, Cpu, Send, Loader2
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -31,7 +37,8 @@ interface AnalysisProps {
 }
 
 const TABS = [
-  { id: 'overview', label: 'Dashboard', icon: Activity },
+  { id: 'ai-dashboard', label: 'AI Dashboard', icon: Cpu },
+  { id: 'overview', label: 'Outcomes', icon: Activity },
   { id: 'desc', label: 'Demographics', icon: Users },
   { id: 'baseline', label: 'Baseline Data', icon: FileText },
   { id: 'anatomy', label: 'Vascular Anatomy', icon: GitMerge },
@@ -49,7 +56,7 @@ type AiStatus = { text: string | null; loading: boolean };
 
 const Analysis: React.FC<AnalysisProps> = ({ records }) => {
   const [report, setReport] = useState<AnalysisReport | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('ai-dashboard');
   const [predParams, setPredParams] = useState({
     shaggy: false,
     urgency: false,
@@ -57,6 +64,13 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
     noEpd: false 
   });
   const [kmView, setKmView] = useState<'overall' | 'stroke' | 'urgency' | 'epd' | 'strokeType' | 'bleeding' | 'aki' | 'procDuration' | 'priorStroke' | 'afib' | 'carotidStenosis' | 'ckd' | 'diabetes' | 'heartFailure'>('overall');
+
+  // Dashboard AI state
+  const [tabAnalyses, setTabAnalyses] = useState<TabAnalysis[]>([]);
+  const [dashboardSynthesis, setDashboardSynthesis] = useState<{ text: string | null; loading: boolean }>({ text: null, loading: false });
+  const [qaQuestion, setQaQuestion] = useState('');
+  const [qaResponse, setQaResponse] = useState<{ text: string | null; loading: boolean }>({ text: null, loading: false });
+  const [allTabsAnalyzed, setAllTabsAnalyzed] = useState(false);
 
   const [aiAnalysis, setAiAnalysis] = useState<{
     overview: AiStatus;
@@ -77,6 +91,48 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
   });
 
   const safeDiv = (num: number, den: number) => den === 0 ? 0 : num / den;
+
+  // Dashboard AI handlers
+  const runAllTabsAnalysis = async () => {
+    if (!report) return;
+    try {
+      const analyses = await analyzeAllTabs(report);
+      setTabAnalyses(analyses);
+      setAllTabsAnalyzed(true);
+    } catch (error) {
+      console.error('Failed to analyze all tabs:', error);
+    }
+  };
+
+  const runDashboardSynthesis = async () => {
+    if (!report || tabAnalyses.length === 0) return;
+    setDashboardSynthesis(prev => ({ ...prev, loading: true }));
+    try {
+      const synthesis = await generateDashboardSynthesis(report, tabAnalyses);
+      setDashboardSynthesis({ text: synthesis, loading: false });
+    } catch (error) {
+      setDashboardSynthesis({ 
+        text: `Synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 
+        loading: false 
+      });
+    }
+  };
+
+  const handleAskQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!qaQuestion.trim() || !report || tabAnalyses.length === 0) return;
+    
+    setQaResponse(prev => ({ ...prev, loading: true }));
+    try {
+      const response = await answerStudyQuestion(report, qaQuestion, tabAnalyses);
+      setQaResponse({ text: response, loading: false });
+    } catch (error) {
+      setQaResponse({ 
+        text: `Question answering failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 
+        loading: false 
+      });
+    }
+  };
 
   useEffect(() => {
     if (records && records.length > 0) {
@@ -242,6 +298,159 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
 
       <div className="bg-slate-900 border border-slate-800 rounded-b-lg rounded-tr-lg p-6 md:p-8 shadow-2xl min-h-[400px]">
         
+        {activeTab === 'ai-dashboard' && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Dashboard Header */}
+            <div className="bg-slate-950 border border-slate-800 rounded-lg p-8 shadow-inner">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-100 flex items-center uppercase tracking-tight">
+                    <Cpu className="w-6 h-6 mr-3 text-purple-500" /> Intelligent Study Dashboard
+                  </h3>
+                  <p className="text-[10px] text-slate-500 mt-2 uppercase font-mono tracking-widest">Multi-Agent Analytics & Question Answering System</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="bg-slate-900 p-4 rounded border border-slate-700">
+                  <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Dataset</div>
+                  <div className="text-2xl font-black text-cyan-400">{report?.totalRecords || 0}</div>
+                  <div className="text-[9px] text-slate-600 mt-1">Total Patients</div>
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-700">
+                  <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Primary Outcome</div>
+                  <div className="text-2xl font-black text-yellow-400">{(report?.primaryOutcome?.stroke?.rate || 0).toFixed(1)}%</div>
+                  <div className="text-[9px] text-slate-600 mt-1">30-Day Stroke</div>
+                </div>
+                <div className="bg-slate-900 p-4 rounded border border-slate-700">
+                  <div className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Safety</div>
+                  <div className="text-2xl font-black text-red-400">{(report?.primaryOutcome?.death?.rate || 0).toFixed(1)}%</div>
+                  <div className="text-[9px] text-slate-600 mt-1">30-Day Mortality</div>
+                </div>
+              </div>
+
+              {/* Analysis Pipeline */}
+              <div className="border-t border-slate-700 pt-6">
+                <h4 className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-4">Analysis Pipeline</h4>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={runAllTabsAnalysis}
+                    disabled={!report || allTabsAnalyzed}
+                    className={`flex-1 flex items-center justify-center px-4 py-3 rounded text-[10px] font-black uppercase tracking-[0.15em] transition-all border ${
+                      allTabsAnalyzed
+                        ? 'bg-green-900/20 border-green-500/30 text-green-500'
+                        : 'bg-purple-600 hover:bg-purple-500 text-slate-950 border-transparent'
+                    }`}
+                  >
+                    {allTabsAnalyzed ? (
+                      <><CheckCircle2 className="w-4 h-4 mr-2" /> Analyses Complete</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4 mr-2" /> Analyze All Tabs</>
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={runDashboardSynthesis}
+                    disabled={!allTabsAnalyzed || dashboardSynthesis.loading}
+                    className={`flex-1 flex items-center justify-center px-4 py-3 rounded text-[10px] font-black uppercase tracking-[0.15em] transition-all border ${
+                      !allTabsAnalyzed
+                        ? 'bg-slate-900 border-slate-800 text-slate-700 cursor-not-allowed'
+                        : dashboardSynthesis.text
+                        ? 'bg-blue-900/20 border-blue-500/30 text-blue-400'
+                        : 'bg-blue-600 hover:bg-blue-500 text-slate-950 border-transparent'
+                    }`}
+                  >
+                    {dashboardSynthesis.loading ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Synthesizing...</>
+                    ) : dashboardSynthesis.text ? (
+                      <><CheckCircle2 className="w-4 h-4 mr-2" /> Executive Summary Ready</>
+                    ) : (
+                      <><FileText className="w-4 h-4 mr-2" /> Generate Summary</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab Analysis Results */}
+            {allTabsAnalyzed && tabAnalyses.length > 0 && (
+              <div className="bg-slate-950 border border-slate-800 rounded-lg p-8 shadow-inner">
+                <h4 className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-6 flex items-center">
+                  <Activity className="w-4 h-4 mr-3 text-cyan-400" /> Domain-Specific Analyses
+                </h4>
+                <div className="space-y-6">
+                  {tabAnalyses.map((analysis) => (
+                    <div key={analysis.tabId} className="border-l-2 border-purple-500/50 pl-4">
+                      <h5 className="text-slate-300 font-bold uppercase text-[11px] tracking-widest mb-2">{analysis.tabLabel}</h5>
+                      <div className="prose prose-invert prose-sm max-w-none text-slate-400 text-[13px] leading-relaxed">
+                        <ReactMarkdown>{analysis.analysis}</ReactMarkdown>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Executive Summary */}
+            {dashboardSynthesis.text && (
+              <div className="bg-slate-950 border border-purple-500/30 rounded-lg p-8 shadow-inner ring-1 ring-purple-500/10">
+                <h4 className="text-purple-400 font-bold uppercase tracking-widest text-[10px] mb-6 flex items-center">
+                  <Cpu className="w-4 h-4 mr-3" /> Executive Synthesis
+                </h4>
+                <div className="prose prose-invert prose-sm max-w-none text-slate-300 text-[14px] leading-relaxed">
+                  <ReactMarkdown>{dashboardSynthesis.text}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+
+            {/* Question Answering Interface */}
+            {allTabsAnalyzed && tabAnalyses.length > 0 && (
+              <div className="bg-slate-950 border border-slate-800 rounded-lg p-8 shadow-inner">
+                <h4 className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-6 flex items-center">
+                  <Brain className="w-4 h-4 mr-3 text-cyan-400" /> Ask About Your Study Data
+                </h4>
+                
+                <form onSubmit={handleAskQuestion} className="mb-6">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={qaQuestion}
+                      onChange={(e) => setQaQuestion(e.target.value)}
+                      placeholder="Ask a question about the study findings... (e.g., 'What are the main differences between high and low risk patients?')"
+                      className="flex-1 px-4 py-3 rounded bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 text-[13px]"
+                      disabled={qaResponse.loading}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!qaQuestion.trim() || qaResponse.loading}
+                      className="px-6 py-3 rounded bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-700 text-slate-950 font-bold uppercase tracking-wider text-[10px] transition-all flex items-center"
+                    >
+                      {qaResponse.loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </form>
+
+                {qaResponse.text && (
+                  <div className="bg-slate-900 p-6 rounded border border-slate-700 prose prose-invert prose-sm max-w-none text-slate-300">
+                    <ReactMarkdown>{qaResponse.text}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!allTabsAnalyzed && (
+              <div className="text-center py-12 text-slate-500">
+                <Sparkles className="w-8 h-8 mx-auto mb-4 opacity-50" />
+                <p className="text-[12px] uppercase tracking-widest font-mono">Click "Analyze All Tabs" to begin</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'overview' && (
            <div className="space-y-8 animate-fade-in">
              <div className="bg-slate-950 border border-slate-800 rounded-lg p-6 mb-8 shadow-inner">
