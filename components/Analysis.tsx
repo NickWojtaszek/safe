@@ -178,7 +178,16 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       console.error('Agent error:', errorMsg);
-      setAiAnalysis(prev => ({ ...prev, [key]: { text: `❌ Error: ${errorMsg}\n\nCheck browser console for details. Verify API key is set in .env.local`, loading: false } }));
+      
+      // Better error message for rate limits
+      let userMessage = errorMsg;
+      if (errorMsg.includes('429') || errorMsg.includes('rate limit') || errorMsg.includes('Too Many Requests')) {
+        userMessage = `⏱️ Rate Limit Exceeded\n\nYou've exceeded Claude's rate limit (10,000 tokens/min). Please wait a moment and try again in 30-60 seconds.\n\nTip: Run fewer agents at once to avoid hitting the limit.`;
+      } else if (errorMsg.includes('API Error')) {
+        userMessage = `❌ API Error\n\n${errorMsg}\n\nCheck browser console for details. Verify API key is set in .env.local`;
+      }
+      
+      setAiAnalysis(prev => ({ ...prev, [key]: { text: userMessage, loading: false } }));
     }
   };
 
@@ -226,7 +235,14 @@ const Analysis: React.FC<AnalysisProps> = ({ records }) => {
       const text = await generateComprehensiveStudyReport(report, allAnalyses);
       setAiAnalysis(prev => ({ ...prev, report: { text, loading: false } }));
     } catch (e) {
-      setAiAnalysis(prev => ({ ...prev, report: { text: "Comprehensive report generation failed.", loading: false } }));
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      let userMessage = "Comprehensive report generation failed.";
+      
+      if (errorMsg.includes('429') || errorMsg.includes('rate limit') || errorMsg.includes('Too Many Requests')) {
+        userMessage = `⏱️ Rate Limit Exceeded\n\nToo many requests to Claude API. Please wait 30-60 seconds before trying again.\n\nTip: If you keep hitting rate limits, consider upgrading your Claude API plan at https://www.anthropic.com/contact-sales`;
+      }
+      
+      setAiAnalysis(prev => ({ ...prev, report: { text: userMessage, loading: false } }));
     }
   };
 

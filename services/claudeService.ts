@@ -166,7 +166,7 @@ export const generateMasterSummary = async (report: AnalysisReport, analyses: Re
 
     Format as a formal Medical Journal Abstract (Results & Conclusion).
   `;
-  return ai.callApi(prompt, 2048);
+  return ai.callApi(prompt, 1500);
 };
 
 export const generateDemographicsInterpretation = async (report: AnalysisReport): Promise<string> => {
@@ -275,18 +275,18 @@ export const generateComprehensiveStudyReport = async (report: AnalysisReport, a
     Risk Predictors: ${allAnalyses.predict}
 
     INSTRUCTIONS:
-    Write a 1500-2000 word comprehensive report including:
-    1. **Executive Summary** (200 words): Key findings and clinical significance
-    2. **Patient Population** (200 words): Demographics, baselines, and cohort representativeness
-    3. **Anatomical Assessment** (200 words): Vascular findings and risk stratification
-    4. **Procedure & Device Strategy** (200 words): Technical approach and device selection rationale
-    5. **Clinical Outcomes** (300 words): Primary endpoints, neurological complications, mortality
-    6. **Safety Profile** (200 words): Adverse events, complication patterns, risk factors
-    7. **Risk Stratification** (200 words): High-risk populations and predictive models
-    8. **Conclusions & Recommendations** (200 words): Overall trial success, clinical implications, future directions
+    Write a 1200-1500 word comprehensive report including:
+    1. **Executive Summary** (150 words): Key findings and clinical significance
+    2. **Patient Population** (150 words): Demographics, baselines, and cohort representativeness
+    3. **Anatomical Assessment** (150 words): Vascular findings and risk stratification
+    4. **Procedure & Device Strategy** (150 words): Technical approach and device selection rationale
+    5. **Clinical Outcomes** (250 words): Primary endpoints, neurological complications, mortality
+    6. **Safety Profile** (150 words): Adverse events, complication patterns, risk factors
+    7. **Risk Stratification** (150 words): High-risk populations and predictive models
+    8. **Conclusions & Recommendations** (150 words): Overall trial success, clinical implications, future directions
 
     Format professionally for medical journal submission.
   `;
-  return ai.callApi(prompt, 2048);
+  return ai.callApi(prompt, 1500);
 };
 
