@@ -24,35 +24,41 @@ const AppContent: React.FC = () => {
   const [selectedParameters, setSelectedParameters] = useState<string[]>([]);
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<CollectionRecord | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [currentStudyId, setCurrentStudyId] = useState<string | null>(null);
 
   // Load records from Supabase on mount and when user changes
   useEffect(() => {
     const loadRecords = async () => {
       if (!user) {
         setRecords([]);
-        setLoading(false);
+        setCurrentStudyId(null);
         return;
       }
 
       try {
-        setLoading(true);
+        console.log('🔄 Loading records for user:', user.email);
         // Get user's study or create default one
         const studies = await supabaseService.getUserStudies();
-        
+        console.log('📚 Studies found:', studies.length);
+
         if (studies.length === 0) {
           // Create a default study for this user
+          console.log('➕ Creating new study for user');
           const newStudy = await supabaseService.createStudy('Default Study', []);
+          setCurrentStudyId(newStudy.id);
           setRecords([]);
+          console.log('✅ New study created:', newStudy.id);
         } else {
           // Load records from the first study
           const study = studies[0];
+          setCurrentStudyId(study.id);
           setRecords(study.records_data || []);
+          console.log('✅ Loaded', study.records_data?.length || 0, 'records from study:', study.id);
         }
       } catch (error) {
-        console.error('Error loading records:', error);
+        console.error('❌ Error loading records:', error);
         showNotification('Error loading data from database');
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -60,25 +66,44 @@ const AppContent: React.FC = () => {
   }, [user]);
 
   // Save records to Supabase whenever they change
-  const saveRecordsToDatabase = async (newRecords: CollectionRecord[]) => {
-    if (!user) return;
+  const saveRecordsToDatabase = async (newRecords: CollectionRecord[]): Promise<boolean> => {
+    if (!user) {
+      console.warn('⚠️ Cannot save: No user logged in');
+      return false;
+    }
 
+    if (!currentStudyId) {
+      console.warn('⚠️ Cannot save: No study ID available');
+      showNotification('Error: Study not initialized');
+      return false;
+    }
+
+    setIsSaving(true);
     try {
-      const studies = await supabaseService.getUserStudies();
-      if (studies.length > 0) {
-        await supabaseService.updateStudy(studies[0].id, newRecords);
-      }
-    } catch (error) {
-      console.error('Error saving records:', error);
-      showNotification('Warning: Data not saved to database');
+      console.log('💾 Saving', newRecords.length, 'records to study:', currentStudyId);
+      await supabaseService.updateStudy(currentStudyId, newRecords);
+      console.log('✅ Successfully saved to database');
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error saving records:', error);
+      const errorMessage = error?.message || 'Unknown error';
+      showNotification(`Error saving data: ${errorMessage}`);
+      return false;
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleRecordComplete = (record: CollectionRecord) => {
+  const handleRecordComplete = async (record: CollectionRecord) => {
     const newRecords = [...records, record];
     setRecords(newRecords);
-    saveRecordsToDatabase(newRecords);
-    showNotification("Rekord v1.1.9 zapisany pomyślnie");
+
+    const success = await saveRecordsToDatabase(newRecords);
+    if (success) {
+      showNotification("✅ Rekord zapisany do bazy danych");
+    } else {
+      showNotification("❌ Błąd: Rekord nie został zapisany");
+    }
   };
 
   const showNotification = (msg: string) => {
@@ -94,12 +119,17 @@ const AppContent: React.FC = () => {
     );
   };
 
-  const clearAllRecords = () => {
+  const clearAllRecords = async () => {
     if (window.confirm('Are you sure you want to delete ALL records? This cannot be undone.')) {
       const emptyRecords: CollectionRecord[] = [];
       setRecords(emptyRecords);
-      saveRecordsToDatabase(emptyRecords);
-      showNotification('All records deleted successfully');
+
+      const success = await saveRecordsToDatabase(emptyRecords);
+      if (success) {
+        showNotification('✅ All records deleted from database');
+      } else {
+        showNotification('❌ Error deleting records');
+      }
       setActiveTab(Tab.COLLECT);
     }
   };
@@ -109,10 +139,10 @@ const AppContent: React.FC = () => {
     setActiveTab(Tab.COLLECT);
   };
 
-  const handleImportRecords = (newRecords: CollectionRecord[]) => {
+  const handleImportRecords = async (newRecords: CollectionRecord[]) => {
     const currentIds = new Set(records.map(r => r.id));
     const uniqueNewRecords = newRecords.filter(r => !currentIds.has(r.id));
-    
+
     if (uniqueNewRecords.length === 0) {
       showNotification("Brak nowych unikalnych rekordów.");
       return;
@@ -120,8 +150,13 @@ const AppContent: React.FC = () => {
 
     const allRecords = [...records, ...uniqueNewRecords];
     setRecords(allRecords);
-    saveRecordsToDatabase(allRecords);
-    showNotification(`Zaimportowano ${uniqueNewRecords.length} rekordów (v1.1.9).`);
+
+    const success = await saveRecordsToDatabase(allRecords);
+    if (success) {
+      showNotification(`✅ Zaimportowano ${uniqueNewRecords.length} rekordów do bazy`);
+    } else {
+      showNotification(`❌ Błąd importu: dane nie zapisane`);
+    }
   };
 
   return (
@@ -142,7 +177,7 @@ const AppContent: React.FC = () => {
             <div className="flex space-x-4 items-center">
               {/* User Info */}
               <div className="hidden sm:block text-right">
-                <p className="text-xs font-medium text-slate-300">{user?.username}</p>
+                <p className="text-xs font-medium text-slate-300">{user?.email}</p>
                 <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">
                   {user?.role === 'admin' ? '👑 Admin' : '👤 User'}
                 </p>
@@ -274,6 +309,13 @@ const AppContent: React.FC = () => {
         <div className="fixed bottom-12 right-6 bg-slate-900 border border-cyan-500/50 text-cyan-100 px-6 py-4 rounded shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center animate-bounce-in z-50">
           <div className="h-2 w-2 bg-cyan-400 rounded-full mr-3 animate-pulse"></div>
           <span className="font-mono text-xs font-bold uppercase tracking-wider">{notification}</span>
+        </div>
+      )}
+
+      {isSaving && (
+        <div className="fixed top-20 right-6 bg-amber-950/90 border border-amber-500/50 text-amber-100 px-4 py-2 rounded shadow-lg flex items-center z-50">
+          <div className="animate-spin h-3 w-3 border-2 border-amber-400 border-t-transparent rounded-full mr-2"></div>
+          <span className="font-mono text-xs font-bold">SAVING...</span>
         </div>
       )}
     </div>
