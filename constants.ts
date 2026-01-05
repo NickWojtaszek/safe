@@ -27,6 +27,8 @@ export const DATA_SCHEMA: CollectionSchema = [
     fields: [
       { id: 'study_number', label: 'Numer badania', type: FieldType.TEXT, required: true },
       { id: 'center_code', label: 'Kod ośrodka', type: FieldType.TEXT, required: true },
+      { id: 'patient_first_name', label: 'Imię pacjenta', type: FieldType.TEXT, required: true },
+      { id: 'patient_last_name', label: 'Nazwisko pacjenta', type: FieldType.TEXT, required: true },
       { id: 'inclusion_date', label: 'Data włączenia', type: FieldType.DATE, required: true },
       { id: 'collector_initials', label: 'Inicjały osoby zbierającej dane', type: FieldType.TEXT, required: true }
     ]
@@ -173,11 +175,11 @@ export const DATA_SCHEMA: CollectionSchema = [
       { id: 'r_pcom_diam', label: 'Średnica prawej PCom', type: FieldType.NUMBER, unit: 'mm' },
       { id: 'l_pcom_patent', label: 'Lewa t. łącząca tylna (PCom) drożna', type: FieldType.RADIO, options: YES_NO_UNKNOWN },
       { id: 'l_pcom_diam', label: 'Średnica lewej PCom', type: FieldType.NUMBER, unit: 'mm' },
-      { id: 'willis_classification', label: 'Klasyfikacja Koła Willisa', type: FieldType.SELECT, options: [{label: 'Pełne', value: 'full'}, {label: 'Niepełne przednie', value: 'inc_ant'}, {label: 'Niepełne tylne', value: 'inc_post'}, {label: 'Niepełne oba', value: 'inc_both'}] },
+      { id: 'willis_classification', label: 'Klasyfikacja Koła Willisa', type: FieldType.CHECKBOX, options: [{label: 'Pełne', value: 'full'}, {label: 'Niepełne przednie', value: 'inc_ant'}, {label: 'Niepełne tylne', value: 'inc_post'}, {label: 'Niepełne oba', value: 'inc_both'}] },
       { id: 'hdr_e_vb', label: 'UKŁAD KRĘGOWO-PODSTAWNY', type: FieldType.SECTION_HEADER },
-      { id: 'r_va_status', label: 'Prawa t. kręgowa', type: FieldType.SELECT, options: [{label: 'Drożna (V1-V4)', value: 'patent'}, {label: 'Hipoplastyczna (<2 mm)', value: 'hypo'}, {label: 'Kończy się w PICA', value: 'pica'}, {label: 'Niedrożna', value: 'occl'}, {label: 'Nie oceniano', value: 'na'}] },
+      { id: 'r_va_status', label: 'Prawa t. kręgowa', type: FieldType.SELECT, options: [{label: 'Drożna (V1-V4)', value: 'patent'}, {label: 'Hipoplastyczna (<2 mm)', value: 'hypo'}, {label: 'Krytycznie zwężone ostium (V1)', value: 'crit_stenosis_v1'}, {label: 'Kończy się w PICA', value: 'pica'}, {label: 'Niedrożna', value: 'occl'}, {label: 'Nie oceniano', value: 'na'}] },
       { id: 'r_va_pathology', label: 'Prawa t. kręgowa - patologia', type: FieldType.SELECT, options: [{label: 'Zwezenie', value: 'stenosis'}, {label: 'Skrzepliny', value: 'thrombosis'}, {label: 'Dysekcja', value: 'dissection'}, {label: 'Brak patologii', value: 'none'}] },
-      { id: 'l_va_status', label: 'Lewa t. kręgowa', type: FieldType.SELECT, options: [{label: 'Drożna (V1-V4)', value: 'patent'}, {label: 'Hipoplastyczna (<2 mm)', value: 'hypo'}, {label: 'Kończy się w PICA', value: 'pica'}, {label: 'Niedroczna', value: 'occl'}, {label: 'Nie oceniano', value: 'na'}] },
+      { id: 'l_va_status', label: 'Lewa t. kręgowa', type: FieldType.SELECT, options: [{label: 'Drożna (V1-V4)', value: 'patent'}, {label: 'Hipoplastyczna (<2 mm)', value: 'hypo'}, {label: 'Krytycznie zwężone ostium (V1)', value: 'crit_stenosis_v1'}, {label: 'Kończy się w PICA', value: 'pica'}, {label: 'Niedrożna', value: 'occl'}, {label: 'Nie oceniano', value: 'na'}] },
       { id: 'l_va_pathology', label: 'Lewa t. kręgowa - patologia', type: FieldType.SELECT, options: [{label: 'Zwezenie', value: 'stenosis'}, {label: 'Skrzepliny', value: 'thrombosis'}, {label: 'Dysekcja', value: 'dissection'}, {label: 'Brak patologii', value: 'none'}] },
       { id: 'va_dominance', label: 'Dominacja t. kręgowej', type: FieldType.SELECT, options: [{label: 'Kodominacja', value: 'codom'}, {label: 'Dominacja prawa', value: 'r_dom'}, {label: 'Dominacja lewa', value: 'l_dom'}] },
       { id: 'r_va_diam', label: 'Średnica prawej VA', type: FieldType.NUMBER, unit: 'mm' },
@@ -188,7 +190,7 @@ export const DATA_SCHEMA: CollectionSchema = [
       { id: 'l_ica_status', label: 'Lewa ICA', type: FieldType.SELECT, options: [{label: 'Drożna', value: 'patent'}, {label: 'Zwężenie <50%', value: 'sten_lt50'}, {label: 'Zwężenie 50-69%', value: 'sten_50_69'}, {label: 'Zwężenie 70-99%', value: 'sten_70_99'}, {label: 'Niedrożna', value: 'occl'}] },
       { id: 'hdr_e_risk', label: 'KLASYFIKACJA RYZYKA - PODSUMOWANIE', type: FieldType.SECTION_HEADER },
       { id: 'posterior_risk', label: 'Ryzyko krążenia tylnego', type: FieldType.SELECT, options: [{label: 'Niskie (pełne PCom, kodom. VA)', value: 'low'}, {label: 'Umiarkowane (jednostr. PCom)', value: 'med'}, {label: 'Wysokie (brak PCom, pojedyncza VA)', value: 'high'}] },
-      { id: 'willis_risk_total', label: 'Ryzyko Koła Willisa - ŁĄCZNIE', type: FieldType.RADIO, options: [{label: 'Niskie', value: 'low'}, {label: 'Umiarkowane', value: 'med'}, {label: 'Wysokie', value: 'high'}] }
+      { id: 'willis_risk_total', label: 'Ryzyko Koła Willisa - ŁĄCZNIE', type: FieldType.SELECT, options: [{label: 'Niskie (all VA\'s patent)', value: 'low_all_patent'}, {label: 'Umiarkowane (brak obu PCom przy kodominacji VA)', value: 'moderate_no_pcom'}, {label: 'Umiarkowane (jedna VA niewydolna)', value: 'moderate_one_va'}, {label: 'Wysokie (obie VA niewydolne)', value: 'high_both_va'}, {label: 'Nieznane', value: 'unknown'}] }
     ]
   },
   {
@@ -228,7 +230,7 @@ export const DATA_SCHEMA: CollectionSchema = [
       { id: 'hdr_g_access', label: 'DOSTĘP NACZYNIOWY', type: FieldType.SECTION_HEADER },
       { id: 'main_access', label: 'Główny dostęp tętniczy', type: FieldType.SELECT, options: [{label: 'Femoral R', value: 'fem_r'}, {label: 'Femoral L', value: 'fem_l'}, {label: 'Konduit biodrowy', value: 'conduit'}, {label: 'Aortalny', value: 'aortal'}] },
       { id: 'main_sheath_fr', label: 'Rozmiar koszulki głównej (Fr)', type: FieldType.NUMBER },
-      { id: 'add_access_site', label: 'Dostępy dodatkowe', type: FieldType.SELECT, options: [{label: 'T. skroniowa pow. R', value: 'temporal_r'}, {label: 'T. skroniowa pow. L', value: 'temporal_l'}, {label: 'T. podobojczykowa R', value: 'subclavian_r'}, {label: 'T. szyjna wspólna L', value: 'carotid_l'}, {label: 'Promieniowy R', value: 'rad_r'}, {label: 'Promieniowy L', value: 'rad_l'}, {label: 'Ramienny R', value: 'brach_r'}, {label: 'Ramienny L', value: 'brach_l'}, {label: 'Pachowy R', value: 'ax_r'}, {label: 'Pachowy L', value: 'ax_l'}] },
+      { id: 'add_access_site', label: 'Dostępy dodatkowe', type: FieldType.CHECKBOX, options: [{label: 'T. skroniowa pow. R', value: 'temporal_r'}, {label: 'T. skroniowa pow. L', value: 'temporal_l'}, {label: 'T. podobojczykowa R', value: 'subclavian_r'}, {label: 'T. szyjna wspólna L', value: 'carotid_l'}, {label: 'Promieniowy R', value: 'rad_r'}, {label: 'Promieniowy L', value: 'rad_l'}, {label: 'Ramienny R', value: 'brach_r'}, {label: 'Ramienny L', value: 'brach_l'}, {label: 'Pachowy R', value: 'ax_r'}, {label: 'Pachowy L', value: 'ax_l'}] },
       { id: 'hdr_g_config', label: 'KONFIGURACJA URZĄDZENIA', type: FieldType.SECTION_HEADER },
       { id: 'stentgraft_system', label: 'System stentgraftu', type: FieldType.SELECT, options: [{label: 'NEXUS', value: 'nexus'}, {label: 'COOK arch branch', value: 'cook'}, {label: 'RelayBranch', value: 'relay'}, {label: 'Gore TAG', value: 'gore'}, {label: 'Inny', value: 'other'}] },
       { id: 'stentgraft_size', label: 'Rozmiar głównego stentgraftu', type: FieldType.TEXT, placeholder: 'np. 40-28-32/221' },
@@ -278,7 +280,7 @@ export const DATA_SCHEMA: CollectionSchema = [
       { id: 'lsa_coverage_no_revasc', label: 'Pokrycie LSA bez rewaskularyzacji', type: FieldType.RADIO, options: YES_NO_UNKNOWN },
       { id: 'bypass_cs_p', label: 'Bypass/transpozycja szyjno-podobojczykowa', type: FieldType.RADIO, options: YES_NO_UNKNOWN },
       { id: 'hdr_g_staging', label: 'ETAPOWANIE LECZENIA - SEKWENCJA ZABIEGÓW', type: FieldType.SECTION_HEADER },
-      { id: 'treatment_type', label: 'Typ leczenia', type: FieldType.RADIO, options: [{label: 'Tylko Arch Branch (koniec działań)', value: 'ab_only'}, {label: 'Arch Branch + dodatkowe procedury', value: 'ab_plus'}, {label: 'Full metal jacket (Arch + BEVAR/inne w 1 zabiegu)', value: 'fmj'}] },
+      { id: 'treatment_type', label: 'Typ leczenia', type: FieldType.CHECKBOX, options: [{label: 'TEVAR', value: 'tevar'}, {label: 'BEVAR', value: 'bevar'}, {label: 'fEVAR', value: 'fevar'}, {label: 'EVAR', value: 'evar'}, {label: 'IBD Iliac SG', value: 'ibd_iliac_sg'}] },
       { id: 'pre_ab_stentgraft_yn', label: 'Czy implantowano stentgraft przed Arch Branch', type: FieldType.RADIO, options: YES_NO_UNKNOWN },
       { id: 'pre_ab_procedure_date', label: 'Data zabiegu poprzedzającego', type: FieldType.DATE },
       { id: 'pre_ab_procedure_type', label: 'Typ zabiegu przed AB', type: FieldType.SELECT, options: [{label: 'TEVAR', value: 'tevar'}, {label: 'BEVAR', value: 'bevar'}, {label: 'fEVAR', value: 'fevar'}, {label: 'EVAR', value: 'evar'}, {label: 'IBD', value: 'ibd'}, {label: 'Inny', value: 'other'}] },
@@ -288,7 +290,7 @@ export const DATA_SCHEMA: CollectionSchema = [
       { id: 'during_ab_procedure_notes', label: 'Uwagi dot. dodatkowego zabiegu', type: FieldType.TEXTAREA },
       { id: 'post_ab_planned_yn', label: 'Czy planowany kolejny etap leczenia po AB', type: FieldType.RADIO, options: YES_NO_UNKNOWN },
       { id: 'post_ab_procedure_date', label: 'Data planowanego / wykonanego zabiegu po AB', type: FieldType.DATE },
-      { id: 'post_ab_procedure_type', label: 'Typ zabiegu po AB', type: FieldType.SELECT, options: [{label: 'TEVAR', value: 'tevar'}, {label: 'BEVAR', value: 'bevar'}, {label: 'fEVAR', value: 'fevar'}, {label: 'EVAR', value: 'evar'}, {label: 'IBD', value: 'ibd'}, {label: 'Inny', value: 'other'}] },
+      { id: 'post_ab_procedure_type', label: 'Typ zabiegu po AB', type: FieldType.CHECKBOX, options: [{label: 'TEVAR', value: 'tevar'}, {label: 'BEVAR', value: 'bevar'}, {label: 'fEVAR', value: 'fevar'}, {label: 'EVAR', value: 'evar'}, {label: 'IBD Iliac SG', value: 'ibd_iliac_sg'}] },
       { id: 'post_ab_procedure_status', label: 'Status zabiegu po AB', type: FieldType.RADIO, options: [{label: 'Planowany', value: 'planned'}, {label: 'Wykonany', value: 'executed'}, {label: 'Odwołany', value: 'cancelled'}, {label: 'N/D', value: 'nd'}] },
       { id: 'post_ab_procedure_notes', label: 'Uwagi dot. zabiegu po AB', type: FieldType.TEXTAREA }
     ]
@@ -351,7 +353,7 @@ export const DATA_SCHEMA: CollectionSchema = [
       { id: 'lowest_body_temp', label: 'Temperatura (najniższa)', type: FieldType.NUMBER, unit: '°C' },
       { id: 'hdr_h_anticoag', label: 'ANTYKOAGULACJA', type: FieldType.SECTION_HEADER },
       { id: 'heparin_dose_total', label: 'Dawka heparyny (j.m.)', type: FieldType.NUMBER },
-      { id: 'baseline_act', label: 'Wyjściowy ACT (sekundy)', type: FieldType.NUMBER },
+      { id: 'baseline_act', label: 'ACT (sekundy) po podaniu Heparyny', type: FieldType.NUMBER },
       { id: 'peak_act', label: 'Szczytowy ACT (sekundy)', type: FieldType.NUMBER },
       { id: 'act_target_maintained', label: 'ACT utrzymany 250-300s przez cały zabieg', type: FieldType.RADIO, options: YES_NO },
       { id: 'protamine_given', label: 'Podano protaminę', type: FieldType.RADIO, options: YES_NO_UNKNOWN },
@@ -375,7 +377,7 @@ export const DATA_SCHEMA: CollectionSchema = [
       { id: 'flush_pressure_target', label: 'Ciśnienie w worku 150-200 mmHg', type: FieldType.RADIO, options: YES_NO },
       { id: 'flush_rate_drops_per_sec', label: 'Prędkość płukania (kropli/sekundę)', type: FieldType.NUMBER, unit: 'cel: 1-2' },
       { id: 'hdr_i_prep', label: 'WSTĘPNE PŁUKANIE STENTGRAFTU', type: FieldType.SECTION_HEADER },
-      { id: 'sg_flush_technique', label: 'Technika płukania stentgraftu', type: FieldType.SELECT, options: [{label: 'CO2 + sol fizjol. (w koszulce)', value: 'co2_sal'}, {label: 'Wypływ wsteczny (w rękawie)', value: 'retro'}, {label: 'Inna', value: 'other'}] },
+      { id: 'sg_flush_technique', label: 'Technika płukania stentgraftu', type: FieldType.SELECT, options: [{label: 'CO2 + sol fizjol. (w koszulce)', value: 'co2_sal'}, {label: 'Sol fizjologiczna (sama)', value: 'saline_only'}, {label: 'Wypływ wsteczny (w rękawie)', value: 'retro'}, {label: 'Inna', value: 'other'}] },
       { id: 'sg_air_removed_confirmed', label: 'Potwierdzono całkowite usunięcie powietrza', type: FieldType.RADIO, options: YES_NO_UNKNOWN },
       { id: 'hdr_i_epd', label: 'DYSTALNA OCHRONA ZATOROWA (EPD)', type: FieldType.SECTION_HEADER },
       { id: 'epd_used_proc', label: 'Stosowano dystalną ochronę zatorową (EPD)', type: FieldType.RADIO, options: YES_NO_UNKNOWN },

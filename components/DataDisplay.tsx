@@ -52,7 +52,12 @@ const DataDisplay: React.FC<DataDisplayProps> = ({
         ...allFields.map(field => {
           // Handle values that might contain commas or quotes
           const val = record.data[field.id];
-          const stringVal = val === undefined || val === null ? '' : String(val);
+          // Handle arrays (from checkbox fields) by joining with semicolon
+          const stringVal = val === undefined || val === null
+            ? ''
+            : Array.isArray(val)
+              ? val.join('; ')
+              : String(val);
           // Escape double quotes and wrap in quotes
           return `"${stringVal.replace(/"/g, '""')}"`;
         })

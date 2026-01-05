@@ -91,6 +91,20 @@ export class FieldValidator {
             }
           }
           break;
+
+        case FieldType.CHECKBOX:
+          if (field.options && Array.isArray(value)) {
+            const validValues = field.options.map(opt => opt.value);
+            const invalidItems = value.filter(v => !validValues.includes(v));
+            if (invalidItems.length > 0) {
+              errors.push({
+                fieldId: field.id,
+                message: `${field.label} has invalid selections: ${invalidItems.join(', ')}`,
+                severity: 'error'
+              });
+            }
+          }
+          break;
       }
 
       // Custom validation

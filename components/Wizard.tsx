@@ -7,9 +7,10 @@ import { ArrowRight, ArrowLeft, Save, FileText, AlertTriangle, Info } from 'luci
 interface WizardProps {
   onComplete: (record: CollectionRecord) => void;
   initialRecord?: CollectionRecord | null;
+  onPatientNameChange?: (firstName: string, lastName: string) => void;
 }
 
-const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord }) => {
+const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNameChange }) => {
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>(initialRecord?.data || {});
   
@@ -19,7 +20,19 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord }) => {
   const isLastStep = currentSegmentIndex === DATA_SCHEMA.length - 1;
 
   const handleInputChange = (fieldId: string, value: any) => {
-    setFormData(prev => ({ ...prev, [fieldId]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [fieldId]: value };
+
+      // Update patient name in header if name fields changed
+      if ((fieldId === 'patient_first_name' || fieldId === 'patient_last_name') && onPatientNameChange) {
+        const firstName = fieldId === 'patient_first_name' ? value : newData.patient_first_name || '';
+        const lastName = fieldId === 'patient_last_name' ? value : newData.patient_last_name || '';
+        onPatientNameChange(firstName, lastName);
+      }
+
+      return newData;
+    });
+
     if (warnings[fieldId]) {
       setWarnings(prev => {
         const newWarnings = { ...prev };
@@ -154,11 +167,11 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord }) => {
                         {field.options?.map((opt) => {
                           const isSelected = formData[field.id] === opt.value;
                           return (
-                            <label 
-                              key={opt.value} 
+                            <label
+                              key={opt.value}
                               className={`flex-1 min-w-[80px] text-center cursor-pointer border rounded px-3 py-2 text-[10px] font-bold transition-all ${
-                                isSelected 
-                                  ? 'bg-cyan-900/20 border-cyan-500 text-cyan-400' 
+                                isSelected
+                                  ? 'bg-cyan-900/20 border-cyan-500 text-cyan-400'
                                   : 'bg-slate-950 border-slate-800 text-slate-500 hover:bg-slate-900 hover:border-slate-700'
                               }`}
                             >
@@ -170,6 +183,32 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord }) => {
                                 onChange={() => handleInputChange(field.id, opt.value)}
                               />
                               {opt.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : field.type === FieldType.CHECKBOX ? (
+                      <div className="space-y-2">
+                        {field.options?.map((opt) => {
+                          const currentValues = formData[field.id] || [];
+                          const isChecked = Array.isArray(currentValues) && currentValues.includes(opt.value);
+                          return (
+                            <label
+                              key={opt.value}
+                              className="flex items-center gap-3 cursor-pointer px-3 py-2 rounded border border-slate-800 bg-slate-950 hover:bg-slate-900 hover:border-slate-700 transition-all"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const newValues = e.target.checked
+                                    ? [...currentValues, opt.value]
+                                    : currentValues.filter((v: string) => v !== opt.value);
+                                  handleInputChange(field.id, newValues);
+                                }}
+                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-950"
+                              />
+                              <span className="text-[11px] font-medium text-slate-300">{opt.label}</span>
                             </label>
                           );
                         })}

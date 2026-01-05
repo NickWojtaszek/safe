@@ -12,6 +12,7 @@ export enum FieldType {
   NUMBER = 'number',
   SELECT = 'select',
   RADIO = 'radio',
+  CHECKBOX = 'checkbox',
   DATE = 'date',
   TEXTAREA = 'textarea',
   SECTION_HEADER = 'section_header'

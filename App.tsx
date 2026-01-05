@@ -26,6 +26,7 @@ const AppContent: React.FC = () => {
   const [selectedRecord, setSelectedRecord] = useState<CollectionRecord | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [currentStudyId, setCurrentStudyId] = useState<string | null>(null);
+  const [currentPatientName, setCurrentPatientName] = useState<string>('Nowy rekord');
 
   // Load records from Supabase on mount and when user changes
   useEffect(() => {
@@ -139,6 +140,23 @@ const AppContent: React.FC = () => {
     setActiveTab(Tab.COLLECT);
   };
 
+  const handlePatientNameChange = (firstName: string, lastName: string) => {
+    const fullName = `${firstName || ''} ${lastName || ''}`.trim();
+    setCurrentPatientName(fullName || 'Nowy rekord');
+  };
+
+  // Update patient name when selectedRecord changes
+  useEffect(() => {
+    if (selectedRecord?.data) {
+      const firstName = selectedRecord.data.patient_first_name || '';
+      const lastName = selectedRecord.data.patient_last_name || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      setCurrentPatientName(fullName || 'Nowy rekord');
+    } else {
+      setCurrentPatientName('Nowy rekord');
+    }
+  }, [selectedRecord]);
+
   const handleImportRecords = async (newRecords: CollectionRecord[]) => {
     const currentIds = new Set(records.map(r => r.id));
     const uniqueNewRecords = newRecords.filter(r => !currentIds.has(r.id));
@@ -171,6 +189,11 @@ const AppContent: React.FC = () => {
               <div>
                 <h1 className="text-xl font-bold text-slate-100 tracking-tight">SAFE-ARCH <span className="text-cyan-500 font-light">Workstation</span></h1>
                 <p className="text-[10px] text-cyan-500 font-mono tracking-widest uppercase font-black">Protocol v1.1.9-STABLE • LIVE_DEPLOY</p>
+                {activeTab === Tab.COLLECT && (
+                  <p className="text-[11px] text-amber-400 font-mono mt-0.5">
+                    <span className="font-bold">Pacjent:</span> {currentPatientName}
+                  </p>
+                )}
               </div>
             </div>
             
@@ -270,7 +293,11 @@ const AppContent: React.FC = () => {
         <div className="animate-fade-in w-full max-w-[98%] mx-auto">
           {activeTab === Tab.COLLECT && (
             <div className="space-y-6">
-              <Wizard onComplete={handleRecordComplete} initialRecord={selectedRecord} />
+              <Wizard
+                onComplete={handleRecordComplete}
+                initialRecord={selectedRecord}
+                onPatientNameChange={handlePatientNameChange}
+              />
             </div>
           )}
 
