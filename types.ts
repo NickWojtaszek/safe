@@ -30,12 +30,17 @@ export interface FieldDefinition {
   id: string;
   label: string;
   type: FieldType;
-  options?: FieldOption[]; 
+  options?: FieldOption[];
   required?: boolean;
   placeholder?: string;
   unit?: string;
   className?: string;
   validation?: ValidationRule;
+  conditional?: {
+    dependsOn: string;      // Field ID to watch
+    disableWhen: string[];  // Values that disable this field
+    greyOut?: boolean;      // Visual style (true = grey out, false = hide)
+  };
 }
 
 export interface Segment {

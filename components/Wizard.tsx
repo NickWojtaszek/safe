@@ -42,6 +42,14 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNam
     }
   };
 
+  const isFieldDisabled = (field: any): boolean => {
+    if (!field.conditional) return false;
+
+    const dependentValue = formData[field.conditional.dependsOn];
+    const stringValue = String(dependentValue || '');
+    return field.conditional.disableWhen.includes(stringValue);
+  };
+
   const checkValidation = () => {
     const newWarnings: Record<string, string> = {};
     currentSegment.fields.forEach(field => {
@@ -50,7 +58,7 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNam
       }
     });
     setWarnings(newWarnings);
-    return true; 
+    return true;
   };
 
   const handleNext = () => {
@@ -143,17 +151,19 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNam
 
               const isFullWidth = field.type === FieldType.TEXTAREA;
               const hasWarning = !!warnings[field.id];
+              const isDisabled = isFieldDisabled(field);
 
               return (
                 <div key={field.id} className={isFullWidth ? "col-span-2" : "col-span-1"}>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
+                  <label className={`block text-[10px] font-bold mb-2 uppercase tracking-widest ${isDisabled ? 'text-slate-600' : 'text-slate-500'}`}>
                     {field.label} {hasWarning && <span className="text-amber-500 ml-2 inline-flex items-center font-mono"><AlertTriangle className="w-3 h-3 mr-1" /> REQ</span>}
                   </label>
-                  
+
                   <div className="relative group">
                     {field.type === FieldType.SELECT ? (
                       <select
-                        className={`block w-full rounded bg-slate-950 border ${hasWarning ? 'border-amber-900/50' : 'border-slate-800'} text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 sm:text-sm p-3 transition-colors appearance-none`}
+                        disabled={isDisabled}
+                        className={`block w-full rounded bg-slate-950 border ${hasWarning ? 'border-amber-900/50' : 'border-slate-800'} text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 sm:text-sm p-3 transition-colors appearance-none ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                         value={formData[field.id] || ''}
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
                       >
@@ -215,7 +225,8 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNam
                       </div>
                     ) : field.type === FieldType.TEXTAREA ? (
                       <textarea
-                        className={`block w-full rounded bg-slate-950 border ${hasWarning ? 'border-amber-900/50' : 'border-slate-800'} text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 sm:text-sm p-3 font-mono`}
+                        disabled={isDisabled}
+                        className={`block w-full rounded bg-slate-950 border ${hasWarning ? 'border-amber-900/50' : 'border-slate-800'} text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 sm:text-sm p-3 font-mono ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                         rows={3}
                         placeholder={field.placeholder || "Wprowadź dane..."}
                         value={formData[field.id] || ''}
@@ -224,8 +235,9 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNam
                     ) : (
                       <div className="flex rounded shadow-sm">
                         <input
+                          disabled={isDisabled}
                           type={field.type === FieldType.DATE ? 'date' : field.type === FieldType.NUMBER ? 'number' : 'text'}
-                          className={`block w-full flex-1 rounded rounded-r-none bg-slate-950 border ${hasWarning ? 'border-amber-900/50' : 'border-slate-800'} text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 sm:text-sm p-3 font-mono`}
+                          className={`block w-full flex-1 rounded rounded-r-none bg-slate-950 border ${hasWarning ? 'border-amber-900/50' : 'border-slate-800'} text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 sm:text-sm p-3 font-mono ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                           placeholder={field.placeholder || "---"}
                           value={formData[field.id] || ''}
                           onChange={(e) => handleInputChange(field.id, e.target.value)}
