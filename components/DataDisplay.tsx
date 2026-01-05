@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { CollectionRecord, FieldDefinition } from '../types';
 import { DATA_SCHEMA } from '../constants';
-import { CheckSquare, Square, Filter, Download, Upload, FileJson, FileSpreadsheet } from 'lucide-react';
+import { CheckSquare, Square, Filter, Download, Upload, FileJson, FileSpreadsheet, Trash2 } from 'lucide-react';
 
 interface DataDisplayProps {
   records: CollectionRecord[];
@@ -9,21 +9,53 @@ interface DataDisplayProps {
   onToggleParameter: (paramId: string) => void;
   onImport: (records: CollectionRecord[]) => void;
   onSelectRecord?: (record: CollectionRecord) => void;
+  onDeleteRecord?: (recordId: string) => void;
 }
 
-const DataDisplay: React.FC<DataDisplayProps> = ({ 
-  records, 
-  selectedParameters, 
+const DataDisplay: React.FC<DataDisplayProps> = ({
+  records,
+  selectedParameters,
   onToggleParameter,
   onImport,
-  onSelectRecord
+  onSelectRecord,
+  onDeleteRecord
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Flatten all fields from all segments for the table columns
   const allFields = useMemo(() => {
     return DATA_SCHEMA.flatMap(segment => segment.fields);
   }, []);
+
+  const handleRowClick = (record: CollectionRecord) => {
+    const patientName = `${record.data.patient_first_name || 'Nieznany'} ${record.data.patient_last_name || ''}`.trim();
+    const confirmed = window.confirm(
+      `Czy chcesz edytować rekord pacjenta: ${patientName}?\n\nData utworzenia: ${new Date(record.timestamp).toLocaleString('pl-PL')}`
+    );
+
+    if (confirmed && onSelectRecord) {
+      onSelectRecord(record);
+    }
+  };
+
+  const handleDeleteRecord = (e: React.MouseEvent, record: CollectionRecord) => {
+    e.stopPropagation();  // Prevent row click
+
+    const patientName = `${record.data.patient_first_name || 'Nieznany'} ${record.data.patient_last_name || ''}`.trim();
+    const confirmed = window.confirm(
+      `⚠️ UWAGA: Ta operacja jest nieodwracalna!\n\nCzy na pewno chcesz usunąć rekord pacjenta:\n${patientName}\n\nData utworzenia: ${new Date(record.timestamp).toLocaleString('pl-PL')}`
+    );
+
+    if (confirmed) {
+      const doubleConfirm = window.confirm(
+        `Proszę potwierdzić ponownie usunięcie rekordu pacjenta: ${patientName}`
+      );
+
+      if (doubleConfirm && onDeleteRecord) {
+        onDeleteRecord(record.id);
+      }
+    }
+  };
 
   const downloadFile = (content: string, fileName: string, contentType: string) => {
     const a = document.createElement("a");
@@ -235,7 +267,7 @@ const DataDisplay: React.FC<DataDisplayProps> = ({
                   {allFields.map(field => {
                     const isSelected = selectedParameters.includes(field.id);
                     return (
-                      <th 
+                      <th
                         key={field.id}
                         className={`px-6 py-4 text-xs font-bold uppercase tracking-widest whitespace-nowrap border-b border-slate-800 transition-colors cursor-pointer group hover:bg-slate-900 ${
                           isSelected ? 'text-cyan-400 bg-slate-900/50' : 'text-slate-500'
@@ -251,13 +283,16 @@ const DataDisplay: React.FC<DataDisplayProps> = ({
                       </th>
                     );
                   })}
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest w-24 bg-slate-950 border-b border-slate-800">
+                    Akcje
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50 bg-slate-900">
                 {records.map((record, idx) => (
-                  <tr 
-                    key={record.id} 
-                    onClick={() => onSelectRecord?.(record)}
+                  <tr
+                    key={record.id}
+                    onClick={() => handleRowClick(record)}
                     className="hover:bg-cyan-900/20 transition-colors group cursor-pointer"
                   >
                      <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-slate-600 group-hover:text-cyan-500/50">
@@ -267,8 +302,8 @@ const DataDisplay: React.FC<DataDisplayProps> = ({
                       const value = record.data[field.id];
                       const isSelected = selectedParameters.includes(field.id);
                       return (
-                        <td 
-                          key={field.id} 
+                        <td
+                          key={field.id}
                           className={`px-6 py-4 whitespace-nowrap text-sm font-mono border-l border-slate-800/50 ${
                             isSelected ? 'text-cyan-100 bg-cyan-900/5' : 'text-slate-400'
                           }`}
@@ -277,6 +312,15 @@ const DataDisplay: React.FC<DataDisplayProps> = ({
                         </td>
                       );
                     })}
+                    <td className="px-6 py-4 whitespace-nowrap border-l border-slate-800/50">
+                      <button
+                        onClick={(e) => handleDeleteRecord(e, record)}
+                        className="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-900/20 transition-colors"
+                        title="Usuń rekord"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -96,15 +96,72 @@ const AppContent: React.FC = () => {
   };
 
   const handleRecordComplete = async (record: CollectionRecord) => {
-    const newRecords = [...records, record];
+    let newRecords: CollectionRecord[];
+
+    if (selectedRecord) {
+      // Update existing record
+      newRecords = records.map(r => r.id === record.id ? record : r);
+      showNotification("📝 Rekord zaktualizowany");
+    } else {
+      // Create new record
+      newRecords = [...records, record];
+      showNotification("➕ Nowy rekord dodany");
+    }
+
     setRecords(newRecords);
 
     const success = await saveRecordsToDatabase(newRecords);
     if (success) {
-      showNotification("✅ Rekord zapisany do bazy danych");
+      showNotification("✅ Zapisano do bazy danych");
+      setSelectedRecord(null);  // Clear selection
+      setActiveTab(Tab.DATA);  // Return to table view
     } else {
       showNotification("❌ Błąd: Rekord nie został zapisany");
     }
+  };
+
+  const handleSaveProgress = async (partialData: Record<string, any>): Promise<boolean> => {
+    if (!currentStudyId) {
+      showNotification('⚠️ Nie można zapisać - brak aktywnego studium');
+      return false;
+    }
+
+    setIsSaving(true);
+
+    // If editing existing record, update it; otherwise create new draft record
+    let updatedRecords: CollectionRecord[];
+
+    if (selectedRecord) {
+      // Update existing record
+      updatedRecords = records.map(r =>
+        r.id === selectedRecord.id
+          ? { ...r, data: partialData, timestamp: new Date().toISOString() }
+          : r
+      );
+    } else {
+      // Create new draft record with temporary ID
+      const draftRecord: CollectionRecord = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        data: partialData,
+        version: '1.1.5'
+      };
+      updatedRecords = [...records, draftRecord];
+      setSelectedRecord(draftRecord); // Set as selected so subsequent saves update it
+    }
+
+    setRecords(updatedRecords);
+
+    const success = await saveRecordsToDatabase(updatedRecords);
+    setIsSaving(false);
+
+    if (success) {
+      showNotification('✅ Postęp zapisany');
+    } else {
+      showNotification('❌ Błąd podczas zapisywania postępu');
+    }
+
+    return success;
   };
 
   const showNotification = (msg: string) => {
@@ -138,6 +195,18 @@ const AppContent: React.FC = () => {
   const handleSelectRecord = (record: CollectionRecord) => {
     setSelectedRecord(record);
     setActiveTab(Tab.COLLECT);
+  };
+
+  const handleDeleteRecord = async (recordId: string) => {
+    const newRecords = records.filter(r => r.id !== recordId);
+    setRecords(newRecords);
+
+    const success = await saveRecordsToDatabase(newRecords);
+    if (success) {
+      showNotification('🗑️ Rekord usunięty z bazy danych');
+    } else {
+      showNotification('❌ Błąd podczas usuwania rekordu');
+    }
   };
 
   const handlePatientNameChange = (firstName: string, lastName: string) => {
@@ -297,17 +366,20 @@ const AppContent: React.FC = () => {
                 onComplete={handleRecordComplete}
                 initialRecord={selectedRecord}
                 onPatientNameChange={handlePatientNameChange}
+                onSaveProgress={handleSaveProgress}
+                isSaving={isSaving}
               />
             </div>
           )}
 
           {activeTab === Tab.DATA && (
-            <DataDisplay 
-              records={records} 
+            <DataDisplay
+              records={records}
               selectedParameters={selectedParameters}
               onToggleParameter={handleToggleParameter}
               onImport={handleImportRecords}
               onSelectRecord={handleSelectRecord}
+              onDeleteRecord={handleDeleteRecord}
             />
           )}
 

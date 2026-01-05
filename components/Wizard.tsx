@@ -8,16 +8,20 @@ interface WizardProps {
   onComplete: (record: CollectionRecord) => void;
   initialRecord?: CollectionRecord | null;
   onPatientNameChange?: (firstName: string, lastName: string) => void;
+  onSaveProgress?: (partialData: Record<string, any>) => Promise<boolean>;
+  isSaving?: boolean;
 }
 
-const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNameChange }) => {
+const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNameChange, onSaveProgress, isSaving }) => {
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>(initialRecord?.data || {});
-  
+
   const [warnings, setWarnings] = useState<Record<string, string>>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const currentSegment = DATA_SCHEMA[currentSegmentIndex];
   const isLastStep = currentSegmentIndex === DATA_SCHEMA.length - 1;
+  const isEditMode = !!initialRecord;
 
   const handleInputChange = (fieldId: string, value: any) => {
     setFormData(prev => {
@@ -33,12 +37,23 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNam
       return newData;
     });
 
+    setHasUnsavedChanges(true);
+
     if (warnings[fieldId]) {
       setWarnings(prev => {
         const newWarnings = { ...prev };
         delete newWarnings[fieldId];
         return newWarnings;
       });
+    }
+  };
+
+  const handleSaveProgress = async () => {
+    if (onSaveProgress) {
+      const success = await onSaveProgress(formData);
+      if (success) {
+        setHasUnsavedChanges(false);
+      }
     }
   };
 
@@ -64,22 +79,38 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNam
   const handleNext = () => {
     checkValidation();
     if (isLastStep) {
-      const newRecord: CollectionRecord = {
-        id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-        data: formData
-      };
-      onComplete(newRecord);
+      const recordToSave: CollectionRecord = isEditMode && initialRecord
+        ? { ...initialRecord, data: formData, timestamp: new Date().toISOString() }  // Update existing
+        : { id: crypto.randomUUID(), timestamp: new Date().toISOString(), data: formData, version: '1.1.5' };  // Create new
+
+      onComplete(recordToSave);
       setFormData({});
       setCurrentSegmentIndex(0);
       setWarnings({});
+      setHasUnsavedChanges(false);
     } else {
+      if (hasUnsavedChanges) {
+        const shouldSave = window.confirm(
+          'Masz niezapisane zmiany. Czy chcesz zapisać postęp przed przejściem dalej?'
+        );
+        if (shouldSave && onSaveProgress) {
+          handleSaveProgress();
+        }
+      }
       setCurrentSegmentIndex(prev => prev + 1);
     }
   };
 
   const handleBack = () => {
     if (currentSegmentIndex > 0) {
+      if (hasUnsavedChanges) {
+        const shouldSave = window.confirm(
+          'Masz niezapisane zmiany. Czy chcesz zapisać postęp przed przejściem wstecz?'
+        );
+        if (shouldSave && onSaveProgress) {
+          handleSaveProgress();
+        }
+      }
       setCurrentSegmentIndex(prev => prev - 1);
     }
   };
@@ -128,8 +159,27 @@ const Wizard: React.FC<WizardProps> = ({ onComplete, initialRecord, onPatientNam
               </h2>
               <p className="text-slate-400 mt-1 font-mono text-xs uppercase tracking-wider">{currentSegment.description}</p>
             </div>
-            <div className="bg-slate-950 px-3 py-1 rounded border border-slate-800 text-[10px] font-mono text-slate-500">
-              V1.1.5 • {currentSegment.id.toUpperCase()}
+            <div className="flex items-center gap-3">
+              {isEditMode && (
+                <div className="bg-amber-900/30 border border-amber-500/50 px-3 py-1 rounded text-xs font-bold uppercase tracking-widest">
+                  <span className="text-amber-400">Tryb Edycji</span>
+                </div>
+              )}
+              <button
+                onClick={handleSaveProgress}
+                disabled={!hasUnsavedChanges || isSaving}
+                className={`flex items-center px-4 py-2 text-xs font-bold uppercase tracking-widest rounded transition-all ${
+                  !hasUnsavedChanges || isSaving
+                    ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                    : 'bg-cyan-600 hover:bg-cyan-700 text-slate-100 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                }`}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? 'Zapisywanie...' : 'Zapisz Postęp'}
+              </button>
+              <div className="bg-slate-950 px-3 py-1 rounded border border-slate-800 text-[10px] font-mono text-slate-500">
+                V1.1.5 • {currentSegment.id.toUpperCase()}
+              </div>
             </div>
           </div>
         </div>
