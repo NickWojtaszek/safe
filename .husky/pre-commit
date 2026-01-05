@@ -1,0 +1,4 @@
+echo "🔍 Running pre-commit checks..."
+echo "📦 Building project to check for TypeScript errors..."
+npm run build
+echo "✅ Pre-commit checks passed!"
